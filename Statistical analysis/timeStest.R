@@ -59,11 +59,19 @@ plot(TSTmeans_standardized, TSmeans_standardized,
 #Try divide each value with the biggest value of each column and plotting again
 
 
+Z <- as.matrix(TS)
+colMax <- function(X) apply(na.omit(X), 2, max)
+Zmax <- as.numeric(colMax(Z))
+
+mapply(`/`, data.frame(a), b)
+
+
+
+c <- apply(Z, 2,  function(x) as.numeric(x) / Zmax)
 
 
 
 
-acf(TSmeans, lag.max = NULL, plot = TRUE, na.action = na.pass)
 
 
 library(zoo)
