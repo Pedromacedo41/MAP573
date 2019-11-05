@@ -1,6 +1,6 @@
 
-TS <- read.csv("TS.csv")
-TST <- read.csv("TST.csv")
+TS <- read.csv("../Data/TS.csv")
+TST <- read.csv("../Data/TST.csv")
 
 
 row.names(TST) <- TST$datetime
@@ -101,7 +101,8 @@ ggplot(plotData, aes(timesNAomit)) +
 library(forecast)
 library(xts)
 
-TS <- read.csv("TS.csv")
+
+TS <- read.csv("../Data/TS.csv")
 row.names(TS) <- TS$datetime
 TS <- TS[,3:22]
 colnames(TS) <-  c("Z1", "Z2", "Z3", "Z4", "Z5", "Z6", "Z7", "Z8", "Z9", 

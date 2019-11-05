@@ -8,10 +8,9 @@ output: html_document
 
 Read in the TS objects.We set the index as the dates and remove the time/date column and the X column. The temperature file has 11 zones and I assume that those 11 zones are the same as the first zones in the load TS.
 ```{r chunk0}
-setwd("~/Documents/Skóli/École Polytechnique/Data Analysis and Unsupervised Learning /Project/Data")
 
-TS <- read.csv("TS.csv")
-TST <- read.csv("TST.csv")
+TS <- read.csv("../Data/TS.csv")
+TST <- read.csv("../Data/TST.csv")
 
 row.names(TST) <- TST$datetime
 TST = subset(TST, select = -c(X, datetime))
@@ -108,8 +107,7 @@ Here we focus on the load data.
 library(forecast)
 library(xts)
 
-setwd("~/Documents/Skóli/École Polytechnique/Data Analysis and Unsupervised Learning /Project/Data")
-TS <- read.csv("TS.csv")
+TS <- read.csv("../Data/TS.csv")
 row.names(TS) <- TS$datetime
 TS <- TS[,3:22]
 colnames(TS) <-  c("Z1", "Z2", "Z3", "Z4", "Z5", "Z6", "Z7", "Z8", "Z9", 
@@ -142,12 +140,12 @@ We now have the data on xts format so we can use the forecast library on the TS.
 
 ```{r chunk 5}
 
-
-
 gglagplot(load.ts, do.lines = FALSE, set.lags = 1:30)
 
-
 ```
+
+...
+
 
 ```{r chunk 4.5}
 ggAcf(load.ts)
