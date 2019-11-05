@@ -1,17 +1,7 @@
----
-title: "TS"
-author: "Ari Jóhannesson"
-date: "10/31/2019"
-output: html_document
----
-## Relationship between temperature and load
-
-Read in the TS objects.We set the index as the dates and remove the time/date column and the X column. The temperature file has 11 zones and I assume that those 11 zones are the same as the first zones in the load TS.
-```{r chunk0}
-setwd("~/Documents/Skóli/École Polytechnique/Data Analysis and Unsupervised Learning /Project/Data")
 
 TS <- read.csv("TS.csv")
 TST <- read.csv("TST.csv")
+
 
 row.names(TST) <- TST$datetime
 TST = subset(TST, select = -c(X, datetime))
@@ -19,15 +9,17 @@ TST = subset(TST, select = -c(X, datetime))
 row.names(TS) <- TS$datetime
 TS = subset(TS, select = -c(X, datetime))
 
-TS <- TS[,1:11]
 
-```
-
-Because we have so many zones, we might want to simplify our data and only use the mean over the zones. If we do not do that, the temperature vs weight plot will have different clusters and the TS plot will also have more lines.
-
-```{r chunk1}
+#I assume the temperature zones (1-11) are Z1-Z11  in the loadTS.
 
 
+#Now we can plot the temperature vs load
+#plot(TST, TS) #Can be done but zones will form different clusters
+#Maybe better to take the average across all zones
+
+
+
+#STANDARDIZE
 Z <- t(as.matrix(TS))
 TSstandardized <-  t(scale(Z, center = TRUE, scale = TRUE))
 Z <- t(as.matrix(TST))
@@ -44,11 +36,8 @@ TSTmeans[1]
 TSTmeans_standardized <- rowMeans(TSTstandardized[1:29414, ])
 
 
-```
-
-We then plot the data. relationship between load and temperature can be seen. Maybe change temperature to C later on. Also, find out in what units the load is.
-
-```{r chunk2}
+data <- as.data.frame(cbind(TSTmeans, TSmeans))
+data_standardized <- as.data.frame(cbind(TSTmeans_standardized, TSmeans_standardized))
 
 plot(TSTmeans, TSmeans, 
      main = "Relationship between energy load and temperature", 
@@ -64,19 +53,30 @@ plot(TSTmeans_standardized, TSmeans_standardized,
      ylab = "Load", 
      cex = 0.1,
      panel.first = grid(nx = NULL, ny = NULL, col = "red", lty = "dotted"))
-```
 
-## Time series analyis
+Z <- as.matrix(TS)
 
-We use the zoo library because the ts library does not support hourly collected data. First, the dates/hours are formatted and then a TS object is made out of them. This is done for both load and temperature.
-Then the data is plotted. The y axis og the ggplot has to be changed so that the left axis shows W and the right shows temeprature f.x.
-```{r chunk 3}
+rescalemat <- function(mat){
+  apply(mat, 1, function(x){
+    colmax<-apply(mat, 2, function(x) max(x))
+    rowmax<-apply(mat, 1, function(x) max(x))
+    x/min(colmax,rowmax)
+    mat
+  })
+}
+
+Z <- rescalemat(Z)
+
+
+
+acf(TSmeans, lag.max = NULL, plot = TRUE, na.action = na.pass)
+
 
 library(zoo)
 
 times <- as.POSIXct(row.names(data), format = "%Y-%m-%d %H:%M:")
 timesNAomit <- na.omit(times) 
-load.ts <- zoo(
+load.ts <- as.zoo(
   x         = data$TSmeans,
   order.by  = timesNAomit,
   frequency = 24
@@ -99,31 +99,25 @@ ggplot(plotData, aes(timesNAomit)) +
      y="Value", x = "Year")
 
 
-```
 
-## Forecast
 
-With the Forecast library we can do a lot of cool stuff. The data has to be on TS format.
-Here we focus on the load data. 
-```{r chunk 4}
+
+#_____________________ Create and work with TS____________________________#
+
 library(forecast)
 library(xts)
 
-setwd("~/Documents/Skóli/École Polytechnique/Data Analysis and Unsupervised Learning /Project/Data")
 TS <- read.csv("TS.csv")
 row.names(TS) <- TS$datetime
 TS <- TS[,3:22]
 colnames(TS) <-  c("Z1", "Z2", "Z3", "Z4", "Z5", "Z6", "Z7", "Z8", "Z9", 
                       "Z10", "Z11", "Z12" ,"Z13", "Z14", "Z15", "Z16", "Z17", "Z18", "Z19", "Z20")
 
+
 TS <- TS[1]
 #TS
 startDay <- as.POSIXct(row.names(TS)[1], format = "%Y-%m-%d %H:%M:")
-load.ts <- ts(TS, start = as.numeric(startDay), frequency = 24) #This time seires gives time/date as a number, not right
-
-class(load.ts)
-head(load.ts)
-summary(load.ts)
+load.ts <- ts(TS, start = as.numeric(startDay))
 
 #ZOO
 times <- as.POSIXct(row.names(TS), format = "%Y-%m-%d %H:%M:")
@@ -132,24 +126,16 @@ load.zoo <- as.zoo(
   order.by  = times,
   frequency = 24
 )
-class(load.zoo)
-head(load.zoo)
-summary(load.zoo)
-
-```
-We now have the data on xts format so we can use the forecast library on the TS.
-
-```{r chunk 5}
-
-autoplot(load.zoo)
-gglagplot(load.ts, do.lines = FALSE, set.lags = 1:30)
 
 
-ggAcf(load.zoo, na.action = na.pass, lag.max = 24*35)
-ggAcf(load.zoo, plot=FALSE)
-plot(diff(load.ts))
+#autoplot(load.zoo)
+#autoplot(load.zoo, facets = FALSE)
 
 
+gglagplot(load.ts, do.lines=FALSE)
+ggAcf(load.ts)
 
-```
 
+ggAcf(TS)
+g <- ggAcf(load_xts, plot=FALSE)
+plot(diff(load_xts))
