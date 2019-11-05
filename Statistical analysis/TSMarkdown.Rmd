@@ -27,13 +27,10 @@ Because we have so many zones, we might want to simplify our data and only use t
 
 ```{r chunk1}
 
-
 Z <- t(as.matrix(TS))
 TSstandardized <-  t(scale(Z, center = TRUE, scale = TRUE))
 Z <- t(as.matrix(TST))
 TSTstandardized <- t(scale(Z, center = TRUE, scale = TRUE))
-
-
 
 TSmeans <- rowMeans(TS[1:29414, ])
 TSmeans[1]
@@ -42,6 +39,9 @@ TSmeans_standardized <- rowMeans(TSstandardized[1:29414, ])
 TSTmeans <- rowMeans(TST[1:29414, ])
 TSTmeans[1]
 TSTmeans_standardized <- rowMeans(TSTstandardized[1:29414, ])
+
+data <- as.data.frame(cbind(TSTmeans, TSmeans))
+data_standardized <- as.data.frame(cbind(TSTmeans_standardized, TSmeans_standardized))
 
 
 ```
@@ -71,7 +71,6 @@ plot(TSTmeans_standardized, TSmeans_standardized,
 We use the zoo library because the ts library does not support hourly collected data. First, the dates/hours are formatted and then a TS object is made out of them. This is done for both load and temperature.
 Then the data is plotted. The y axis og the ggplot has to be changed so that the left axis shows W and the right shows temeprature f.x.
 ```{r chunk 3}
-
 library(zoo)
 
 times <- as.POSIXct(row.names(data), format = "%Y-%m-%d %H:%M:")
@@ -116,7 +115,7 @@ TS <- TS[,3:22]
 colnames(TS) <-  c("Z1", "Z2", "Z3", "Z4", "Z5", "Z6", "Z7", "Z8", "Z9", 
                       "Z10", "Z11", "Z12" ,"Z13", "Z14", "Z15", "Z16", "Z17", "Z18", "Z19", "Z20")
 
-TS <- TS[1]
+TS <- TS[1] #ONly zone1
 #TS
 startDay <- as.POSIXct(row.names(TS)[1], format = "%Y-%m-%d %H:%M:")
 load.ts <- ts(TS, start = as.numeric(startDay), frequency = 24) #This time seires gives time/date as a number, not right
@@ -139,17 +138,58 @@ summary(load.zoo)
 ```
 We now have the data on xts format so we can use the forecast library on the TS.
 
+
+
 ```{r chunk 5}
 
-autoplot(load.zoo)
+
+
 gglagplot(load.ts, do.lines = FALSE, set.lags = 1:30)
 
 
-ggAcf(load.zoo, na.action = na.pass, lag.max = 24*35)
-ggAcf(load.zoo, plot=FALSE)
+```
+
+```{r chunk 4.5}
+ggAcf(load.ts)
+ggAcf(load.ts, na.action = na.pass, lag.max = 24*35)
+
+```
+There seems to be a seasonal period of 24 hours. Also, when lags are increased there seem to be another seasonal period of 7 days.
+Now to partial autocorrelation.
+```{r chunk 6}
+ggAcf(load.ts, type = "partial")
+ggAcf(load.ts, type = "partial", lag.max = 24*7)
+ggAcf(load.ts, type = "partial", lag.max = 24*7*4)
+
+ggAcf(load.ts, plot=FALSE)
+ggAcf(load.ts, type = "partial", plot=FALSE)
+
 plot(diff(load.ts))
+```
+
+
+There is a significant partial autocorrelation on lag 1, 2, 3, 13:17, 24,25, and 26. When the lag is higher, there seems to be partial autocorrelation every 24 hours and every 7 days, confirming a seasonal period of 24 hours as well as a weekly seasonal period.
+
+
+
+```{r chunk 7}
+
+autoplot(load.zoo[1:24], main="24 hours from baseline")
+autoplot(load.zoo[1:24*7], main="week from baseline")
+autoplot(load.zoo[1:24*7*4], main="month from baseline")
 
 
 
 ```
+
+First plot:
+
+Second plot: the roughness of the plot is due to the seasonal period of 24 hours. But on this plot we can see that the load is more at the end of the week.
+
+Third plot: 
+
+
+
+
+
 

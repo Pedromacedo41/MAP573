@@ -54,18 +54,12 @@ plot(TSTmeans_standardized, TSmeans_standardized,
      cex = 0.1,
      panel.first = grid(nx = NULL, ny = NULL, col = "red", lty = "dotted"))
 
-Z <- as.matrix(TS)
 
-rescalemat <- function(mat){
-  apply(mat, 1, function(x){
-    colmax<-apply(mat, 2, function(x) max(x))
-    rowmax<-apply(mat, 1, function(x) max(x))
-    x/min(colmax,rowmax)
-    mat
-  })
-}
 
-Z <- rescalemat(Z)
+#Try divide each value with the biggest value of each column and plotting again
+
+
+
 
 
 
@@ -133,9 +127,10 @@ load.zoo <- as.zoo(
 
 
 gglagplot(load.ts, do.lines=FALSE)
-ggAcf(load.ts)
+ggAcf(load.ts, type = "correlation")
+ggAcf(load.ts, type = "partial")
 
 
 ggAcf(TS)
-g <- ggAcf(load_xts, plot=FALSE)
+g <- ggAcf(load.ts, plot=FALSE)
 plot(diff(load_xts))
