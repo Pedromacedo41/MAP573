@@ -1,5 +1,5 @@
 
-TS <- read.csv("../Data/TS.csv")
+TS <- read.csv("../Data/Complete_TS.csv")
 TST <- read.csv("../Data/TST.csv")
 
 
@@ -9,13 +9,6 @@ TST = subset(TST, select = -c(X, datetime))
 row.names(TS) <- TS$datetime
 TS = subset(TS, select = -c(X, datetime))
 
-
-#I assume the temperature zones (1-11) are Z1-Z11  in the loadTS.
-
-
-#Now we can plot the temperature vs load
-#plot(TST, TS) #Can be done but zones will form different clusters
-#Maybe better to take the average across all zones
 
 
 
