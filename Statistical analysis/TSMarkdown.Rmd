@@ -109,7 +109,7 @@ bw <- 2 * IQR(load.means.diff) / length(load.means.diff)^(1/3) #Freedman-Diaconi
 d <- coredata(load.means.diff)
 d <- as.data.frame(cbind(1:length(d), d))
 p1 <- ggplot(d,aes(V1, d))+geom_line()+
-      labs(xlav="Time", ylab="Difference")
+      labs(title = "Difference in load between time steps", xlav="Time", ylab="Difference")
 
 d <- coredata(load.means.diff)
 p2 <- ggplot(, aes(x = d)) +
