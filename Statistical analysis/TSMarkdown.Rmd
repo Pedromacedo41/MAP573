@@ -120,7 +120,8 @@ In the ACF plot this can be more clearly seen.
 
 ```{r chunk 5}
 gglagplot(load.means.ts, do.lines = FALSE, set.lags = 1:30, cex=0.1, colour = FALSE)
-ggAcf(load.means.ts)
+g <- ggAcf(load.means.ts)
+g
 ```
 
 
@@ -173,7 +174,63 @@ Second plot: the roughness of the plot is due to the seasonal period of 24 hours
 Third plot: 
 
 
+```{r chunk 8}
 
+N_obs <- 31*24*5
+D <- matrix(data=NA,nrow=N_obs,ncol=12)
+colnames(D) <- c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+
+
+
+years = c("2004-", "2005-", "2006-", "2007-", "2008-", "2009-") #2009 ekki í datasetti
+months = c("01-", "02-", "03-", "04-", "05-", "06-", "07-", "08-", "09-", "10-", "11-", "12-", "01-")
+
+
+
+MaxIndex <- 1
+
+for (y in 1:5){ 
+  year <- years[y]
+  for (m in 1:12){
+    MaxIndex_month <- 1
+    month <- months[m]
+    nextmonth <- months[m+1]
+    
+    if (m == 12)
+    {
+      nextyear <- years[y+1]
+      temp_start <-  paste(c(year, month, "01"), collapse = "")
+      temp_end  <-  paste(c(nextyear, nextmonth, "01"), collapse = "")
+    }
+    else{
+      temp_start <-  paste(c(year, month, "01"), collapse = "")
+      temp_end  <-  paste(c(year, nextmonth, "01"), collapse = "")
+    }
+    
+    sDay <- temp_start
+    eDay <-temp_end
+    
+    monthData <- coredata(window(load.means.zoo, start = as.POSIXct(sDay), end = as.POSIXct(eDay)))
+    lengthMonth <- length(monthData)
+
+    D[MaxIndex:(MaxIndex+lengthMonth-1),m] <-monthData[1:lengthMonth]
+    
+    if (lengthMonth > MaxIndex_month) {MaxIndex_month <- lengthMonth}
+  }
+  MaxIndex <- MaxIndex_month + MaxIndex
+}
+
+
+#Now boxplot with D
+boxplot(D,
+        main = "Average energy load over the zones vs months",
+        na.action = NULL,
+        xlab = "Months",
+        ylab = "Energy load",
+        col = "orange",
+        border = "black")
+      
+```
 
 
 
