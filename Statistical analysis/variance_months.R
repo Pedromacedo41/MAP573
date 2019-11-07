@@ -83,8 +83,19 @@ boxplot(D,
         col = "orange",
         border = "black")
       
+
+library(Rfast)
+mins <- colMins(D)
+maxs <- colMaxs(D)
+minmaxData <- cbind(mins,maxs)
+minmaxData
+row.names(minmaxData) <- colnames(D)
+barplot(t(minmaxData), col=c("Blue","Red"), legend = c("Min load", "Max load"),
+        main = "Min-max load per month",
+        ylab = "Energy load")
+
+
         
-
-
+  
 
 

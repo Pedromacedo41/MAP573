@@ -2,23 +2,32 @@
 title: "Time series temperature/load"
 author: "Ari Jóhannesson"
 date: "10/31/2019"
-output: html_document
+output: 
+  html_document:
+    theme: cosmo
+    highlight: tango
+    toc: True
+    toc_float: True
+    code_folding: hide
 ---
 
 
 ```{r setup, include=FALSE}
 knitr::opts_knit$set(root.dir = getwd())
+knitr::opts_chunk$set(echo = T)
 ```
 
 ## Relationship between temperature and load
 
 Read in the TS objects.We set the index as the dates and remove the time/date column and the X column. The temperature file has 11 zones and I assume that those 11 zones are the same as the first zones in the load TS.
 
-```{r chunk0}
+```{r laodData}
+library(grid)
+library(gridExtra)
+library(rmarkdown)
 
 TS <- read.csv("../Data/Complete_TS.csv")
 TST <- read.csv("../Data/TST.csv")
-
 
 row.names(TST) <- TST$datetime
 TST = subset(TST, select = -c(X, datetime))
@@ -30,7 +39,7 @@ TS = subset(TS, select = -c(X, datetime))
 
 Because we have so many zones, we might want to simplify our data and only use the mean over the zones. If we do not do that, the temperature vs weight plot will have different clusters and the TS plot will also have more lines. A simple mean should be ok due to them having the same units.
 
-```{r chunk1}
+```{r meanData}
 TSmeans <- rowMeans(TS[1:29414, ])
 TSTmeans <- rowMeans(TST[1:29414, ])
 mean_temp <- mean(TSTmeans)
@@ -39,7 +48,7 @@ data <- as.data.frame(cbind(TSTmeans, TSmeans))
 
 The figure shows some relations shipt between temperature and load but as temperature increases/decreases from the mean (around 56 °F), the energy load increases.
 
-```{r chunk2}
+```{r plotLoadvsTemp}
 
 plot(TSTmeans, TSmeans, 
      main = "Relationship between energy load and temperature", 
@@ -48,18 +57,16 @@ plot(TSTmeans, TSmeans,
      cex = 0.1,
      panel.first = grid(nx = NULL, ny = NULL, col = "red", lty = "dotted"))
 
-
 ```
 
-## Time series analyis
+On TS form...
 
-We use the zoo library because the ts library does not support hourly collected data. First, the dates/hours are formatted and then a TS object is made out of them. This is done for both load and temperature.
-Then the data is plotted. The y axis og the ggplot has to be changed so that the left axis shows W and the right shows temeprature f.x.
 
-```{r chunk 3}
-
+```{r ts}
 library(zoo)
 library(xts)
+library(ggplot2)
+
 
 times <- as.POSIXct(row.names(data), format = "%Y-%m-%d %H:%M:")
 timesNAomit <- na.omit(times) 
@@ -84,31 +91,67 @@ load.zoo <- zoo(
 
 mean.data <- cbind(load.means.zoo, temperature.means.zoo)
 
-library(ggplot2)
-ggplot(mean.data, aes(timesNAomit)) + 
-  geom_line(aes(y = load.means.zoo/1000, colour = "Load")) + 
-  geom_line(aes(y = temperature.means.zoo, colour = "Temperature"))+
-  labs(title= "Correlation of load and temperature (no units)",
-     y="Value", x = "Year")
-
-```
-
-## Forecast
-
-
-```{r chunk 4}
-library(forecast)
-library(xts)
-
-
-#Focusing on mean, may change later
-
-#TS
 load.means.ts <- ts(TSmeans, start = as.numeric(times[1]), frequency = 24)
-head(load.means.ts) #Can be used for lagplots because the time units are not important for that
+
 
 ```
 
+
+```{r histogramskkkkk}
+
+## DAMSNssdfsfg
+
+
+load.means.diff <- diff(load.means.ts)
+bw <- 2 * IQR(load.means.diff) / length(load.means.diff)^(1/3) #Freedman-Diaconis rule 
+
+
+d <- coredata(load.means.diff)
+d <- as.data.frame(cbind(1:length(d), d))
+p1 <- ggplot(d,aes(V1, d))+geom_line()+
+      labs(xlav="Time", ylab="Difference")
+
+d <- coredata(load.means.diff)
+p2 <- ggplot(, aes(x = d)) +
+      labs(title= "Difference between each time step ",
+           y="Count", 
+           x = "Difference")+
+      geom_histogram(binwidth = bw) 
+
+d <- coredata(load.means.ts)
+bw <- 2 * IQR(load.means.ts) / length(load.means.ts)^(1/3) #Freedman-Diaconis rule 
+p3 <- ggplot(, mapping = aes(x = d)) +
+      labs(title= "Histogram of load",
+           y="Count", 
+           x = "Load")+
+      geom_histogram(binwidth = bw)
+
+      
+grid.arrange(p1, p2, p3, nrow = 3)
+```
+
+
+
+## Time series analyis
+
+We use the zoo library because the ts library does not support hourly collected data. First, the dates/hours are formatted and then a TS object is made out of them. This is done for both load and temperature.
+Then the data is plotted. The y axis og the ggplot has to be changed so that the left axis shows W and the right shows temeprature f.x.
+
+```{r plotTimeSeries}
+
+p1 <- ggplot(mean.data, aes(timesNAomit)) + 
+      geom_line(aes(y = load.means.zoo)) + 
+      labs(title= "Correlation of load and temperature (no units)",
+      y="Load", x = "Year")
+
+p2 <- ggplot(mean.data, aes(timesNAomit))+
+      geom_line(aes(y = temperature.means.zoo))+
+      labs(y="Temperature", x = "Year")
+      
+grid.arrange(p1, p2, nrow = 2)
+```
+
+# Forecast Library
 ## Autocorrelation
 
 Here, we investigate how values in the time series are correlated to one another.
@@ -118,19 +161,20 @@ When lags are increased the correlation between the variables decreases untill a
 In the ACF plot this can be more clearly seen.
 
 
-```{r chunk 5}
+```{r chunk 5, cache = TRUE}
+library(forecast)
 gglagplot(load.means.ts, do.lines = FALSE, set.lags = 1:30, cex=0.1, colour = FALSE)
-g <- ggAcf(load.means.ts)
-g
 ```
+
+
 
 
 If we go to even more lags the datas 24 hour periods can be seen better.
 
 ```{r chunk 4.3}
-
-ggAcf(load.means.ts, lag.max = 24*35)
-
+p1 <- ggAcf(load.means.ts)
+p2 <- ggAcf(load.means.ts, lag.max = 24*35)
+grid.arrange(p1, p2, nrow = 2)
 ```
 
 
@@ -142,15 +186,17 @@ There seems to be a seasonal period of 24 hours. Also, when lags are increased t
 Now to partial autocorrelation.
 
 ```{r chunk 6}
-ggAcf(load.means.ts, type = "partial")
-ggAcf(load.means.ts, type = "partial", lag.max = 24*7)
-ggAcf(load.means.ts, type = "partial", lag.max = 24*7*4)
+p1 <- ggAcf(load.means.ts, type = "partial")
+p2 <- ggAcf(load.means.ts, type = "partial", lag.max = 24*7)
 
-ggAcf(load.means.ts, plot=FALSE)
-ggAcf(load.means.ts, type = "partial", plot=FALSE)
+p3 <- ggAcf(load.means.ts, type = "partial", lag.max = 24*7*4)
 
-plot(diff(load.means.ts))
+grid.arrange(p1, p2, p3,  ncol = 2, layout_matrix = rbind(c(1,2), c(3,3)))
+
 ```
+
+
+
 
 
 There is a significant partial autocorrelation on lag 1, 2, 3, 13:17, 24,25, and 26. When the lag is higher, there seems to be partial autocorrelation every 24 hours and every 7 days, confirming a seasonal period of 24 hours as well as a weekly seasonal period.
@@ -159,12 +205,12 @@ There is a significant partial autocorrelation on lag 1, 2, 3, 13:17, 24,25, and
 
 ```{r chunk 7}
 
-autoplot(load.means.zoo[1:24], main="24 hours from baseline")
-autoplot(load.means.zoo[1:24*7], main="week from baseline")
-autoplot(load.means.zoo[1:24*7*4], main="month from baseline")
+p1 <- autoplot(load.means.zoo[1:24], main="24 hours from baseline")
+p2 <- autoplot(load.means.zoo[1:24*7], main="week from baseline")
+p3 <- autoplot(load.means.zoo[1:24*7*4], main="month from baseline")
 
 
-
+grid.arrange(p1, p2, p3,  ncol = 2, layout_matrix = rbind(c(1,2), c(3,3)))
 ```
 
 First plot:
@@ -174,6 +220,8 @@ Second plot: the roughness of the plot is due to the seasonal period of 24 hours
 Third plot: 
 
 
+
+# Today
 ```{r chunk 8}
 
 N_obs <- 31*24*5
@@ -232,5 +280,21 @@ boxplot(D,
       
 ```
 
+
+
+```{r chunk 9}
+
+library(Rfast)
+mins <- colMins(D)
+maxs <- colMaxs(D)
+minmaxData <- cbind(mins,maxs)
+row.names(minmaxData) <- colnames(D)
+barplot(t(minmaxData), col=c("Blue","Red"), legend = c("Min load", "Max load"),
+        main = "Min-max load per month",
+        ylab = "Energy load")
+
+
+        
+```
 
 
