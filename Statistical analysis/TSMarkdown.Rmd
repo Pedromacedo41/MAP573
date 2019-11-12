@@ -61,6 +61,87 @@ plot(TSTmeans, TSmeans,
 
 On TS form...
 
+```{r cscc}
+#for mean every 24 hours-----------------------
+days <- 365
+
+D <- matrix(data=0,nrow=20,ncol=days)
+colnames(D) <- c(as.character(1:days))
+
+i <- 1
+idx <- 1
+while (idx<=days){
+  
+  daymean <- colMeans(TS[i:i+23,])
+  D[1:20,idx] <- daymean
+  
+  i <- i+24
+  idx <- idx+1
+}
+
+D <- t(D)
+image(1:days, 1:20, D, xlab = "The first year [days]", ylab = "Zones", main = "'Heatmap' of zones for the first year")
+
+#for all values---------------------
+tsyearlength <- 365*23
+TS_year <- as.matrix(TS[1:tsyearlength,1:20])
+image(1:tsyearlength, 1:20, TS_year, xlab = "The first year [days]", ylab = "Zones", main = "'Heatmap' of zones for the first year")
+
+```
+
+
+```{r ssss}
+#for mean every 24 hours - Standardized-----------------------
+d_st <- matrix(data=0,nrow=20,ncol=1)
+dim(D)
+for (i in 1:dim(D)[2]){
+  temp <- sd(D[,i])
+  d_st[i] <- temp
+}
+
+for (i in 1:dim(D)[2]){ #skipta um zone
+  for (j in 1:dim(D)[1]){ #dagar í einu zoni
+    D[j,i] <- D[j,i]/d_st[i]
+  }
+}
+
+image(1:days, 1:20, D, xlab = "The first year [days]", ylab = "Zones", main = "Standardized 'Heatmap' of zones for the first year")
+
+ts_st <- matrix(data=0,nrow=20,ncol=1)
+for (i in 1:dim(TS_year)[2]){
+  temp <- sd(TS_year[,i])
+  ts_st[i] <- temp
+}
+
+for (i in 1:dim(TS_year)[2]){ #skipta um zone
+  for (j in 1:dim(TS_year)[1]){ #dagar í einu zoni
+    TS_year[j,i] <- TS_year[j,i]/ts_st[i]
+  }
+}
+
+image(1:tsyearlength, 1:20, TS_year, 
+            xlab = "The first year [days]", 
+            ylab = "Zones", main = "Standardized 'Heatmap' of zones for the first year")
+
+
+```
+
+
+
+```{r ssfsfs}
+#Þetta er yfir allar klukkustundir en hitt var meðalhiti yfir dag
+temp <- 23*365
+TSmeans_year <- TSmeans[1:temp]
+temp <- as.matrix(TSmeans_year)
+image(x=1:length(TSmeans_year), y=1, z=temp, 
+      ylab = NULL,
+      xlab = "hours")
+
+```
+
+```{r ksfk}
+
+```
 
 ```{r ts}
 library(zoo)
@@ -103,7 +184,7 @@ load.means.ts <- ts(TSmeans, start = as.numeric(times[1]), frequency = 24)
 
 
 load.means.diff <- diff(load.means.ts)
-bw <- 2 * IQR(load.means.diff) / length(load.means.diff)^(1/3) #Freedman-Diaconis rule 
+
 
 
 d <- coredata(load.means.diff)
@@ -111,15 +192,22 @@ d <- as.data.frame(cbind(1:length(d), d))
 p1 <- ggplot(d,aes(V1, d))+geom_line()+
       labs(title = "Difference in load between time steps", xlav="Time", ylab="Difference")
 
-d <- coredata(load.means.diff)
-p2 <- ggplot(, aes(x = d)) +
+
+
+d <- as.matrix(load.means.diff)
+bw <- 2 * IQR(d) / length(d)^(1/3) #Freedman-Diaconis rule
+d <- as.data.frame(d)
+p2 <- ggplot(d, aes(x = V1)) +
       labs(title= "Difference between each time step ",
            y="Count", 
            x = "Difference")+
       geom_histogram(binwidth = bw) 
 
+
+
+
 d <- coredata(load.means.ts)
-bw <- 2 * IQR(load.means.ts) / length(load.means.ts)^(1/3) #Freedman-Diaconis rule 
+bw <- 2 * IQR(d) / length(d)^(1/3) #Freedman-Diaconis rule 
 p3 <- ggplot(, mapping = aes(x = d)) +
       labs(title= "Histogram of load",
            y="Count", 
@@ -172,6 +260,7 @@ gglagplot(load.means.ts, do.lines = FALSE, set.lags = 1:30, cex=0.1, colour = FA
 If we go to even more lags the datas 24 hour periods can be seen better.
 
 ```{r chunk 4.3}
+library(forecast)
 p1 <- ggAcf(load.means.ts)
 p2 <- ggAcf(load.means.ts, lag.max = 24*35)
 grid.arrange(p1, p2, nrow = 2)
@@ -284,17 +373,22 @@ boxplot(D,
 
 ```{r chunk 9}
 
-library(Rfast)
-mins <- colMins(D)
-maxs <- colMaxs(D)
-minmaxData <- cbind(mins,maxs)
-row.names(minmaxData) <- colnames(D)
-barplot(t(minmaxData), col=c("Blue","Red"), legend = c("Min load", "Max load"),
-        main = "Min-max load per month",
-        ylab = "Energy load")
 
 
-        
+
+
+
+
+
+
+#library(Rfast)
+#mins <- colMins(D)
+#maxs <- colMaxs(D)
+#minmaxData <- cbind(mins,maxs)
+#row.names(minmaxData) <- colnames(D)
+#barplot(t(minmaxData), col=c("Blue","Red"), legend = c("Min load", "Max load"),
+#        main = "Min-max load per month",
+#        ylab = "Energy load")
 ```
 
 
