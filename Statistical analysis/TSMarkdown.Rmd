@@ -163,7 +163,7 @@ for (i in (1:(length(years)-1))){
   year = years[i]
   temp_start <-  paste(c(year, "-01-", "01 01:00:00"), collapse = "")
   temp_end <-  paste(c(year, "-12-", "31 24:00:00"), collapse = "")
-  as.POSIXct(temp_start)
+
   if (i == 4){yend = length(load_zoo)} else {yend <- which(as.POSIXct(temp_end) == index(load_zoo))-1} #-1 til þess að losna við firsta value á næsta ári
   ystart <- which(as.POSIXct(temp_start) == index(load_zoo))
   
@@ -327,7 +327,7 @@ gglagplot(TS_sum, do.lines = FALSE, set.lags = 1:30, cex=0.1, colour = FALSE)
 If we go to even more lags the datas 24 hour periods can be seen better.
 
 ```{r chunk 4.3}
-library(forecast)
+library(forecast, echo=FALSE)
 p1 <- ggAcf(TS_sum)
 p2 <- ggAcf(TS_sum, lag.max = 24*35)
 grid.arrange(p1, p2, nrow = 2)
