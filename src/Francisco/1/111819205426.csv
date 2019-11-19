@@ -1,0 +1,2 @@
+round_epochs,val_loss,loss,batch_size,epochs,first_lstm,layers,loss,optimizer,window_size
+10,0.0012391040737997207,0.0012448149474846534,32,10,16,2,mse,rmsprop,24
