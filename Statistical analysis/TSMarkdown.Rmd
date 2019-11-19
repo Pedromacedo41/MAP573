@@ -239,61 +239,7 @@ print(p2)
 
 ```
 
-```{r ksdkfs}
-    i=1
-  year_zoo <- matrix(data = NA, nrow = 5, ncol = max(size_year))
-    year = years[i]
-    temp_start <-  paste(c(year, "-01-", "01 01:00:00"), collapse = "")
-    temp_end <-  paste(c(year, "-12-", "31 24:00:00"), collapse = "")
-    as.POSIXct(temp_start)
 
-    if (i == 6-1){yend = length(load_zoo)} else {yend <- which(as.POSIXct(temp_end) == index(load_zoo))-1} #-1 til þess að losna við firsta value á næsta ári
-    ystart <- which(as.POSIXct(temp_start) == index(load_zoo))
-    
-    temp <-  coredata(load_zoo[ystart:yend])
-    year_zoo[i,1:length(temp)] <- temp
-  
-    
-    
-i=2
-    year = years[i]
-    temp_start <-  paste(c(year, "-01-", "01 01:00:00"), collapse = "")
-    temp_end <-  paste(c(year, "-12-", "31 24:00:00"), collapse = "")
-    as.POSIXct(temp_start)
-
-    if (i == 6-1){yend = length(load_zoo)} else {yend <- which(as.POSIXct(temp_end) == index(load_zoo))-1} #-1 til þess að losna við firsta value á næsta ári
-    ystart <- which(as.POSIXct(temp_start) == index(load_zoo))
-    
-    temp <-  coredata(load_zoo[ystart:yend])
-    year_zoo[i,1:length(temp)] <- temp
-    
-    
-    
-        i=3
-
-    year = years[i]
-    temp_start <-  paste(c(year, "-01-", "01 01:00:00"), collapse = "")
-    temp_end <-  paste(c(year, "-12-", "31 24:00:00"), collapse = "")
-    as.POSIXct(temp_start)
-
-    if (i == 6-1){yend = length(load_zoo)} else {yend <- which(as.POSIXct(temp_end) == index(load_zoo))-1} #-1 til þess að losna við firsta value á næsta ári
-    ystart <- which(as.POSIXct(temp_start) == index(load_zoo))
-    
-    temp <-  coredata(load_zoo[ystart:yend])
-    year_zoo[i,1:length(temp)] <- temp
-    
-    
-    
-    
-    
-    
-    
-    
-    
-  year_zoo <- as.matrix(coredata(year_zoo))
-head(year_zoo)
-
-```
 
 
 Last graph really noisy. Will try to take an average of day and then plot again....
@@ -540,6 +486,10 @@ plot.zoo(TS_sum_transformed)
 
 TS_sum_backtransformed <- BackTransform(TS_sum_transformed, Lambda)
 plot.zoo(TS_sum_backtransformed)
+
+
+
+#bias adjust then
 
 ```
 
