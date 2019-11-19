@@ -33,24 +33,25 @@ row.names(TST) <- TST$datetime
 TST = subset(TST, select = -c(X, datetime))
 
 row.names(TS) <- TS$datetime
-TS = subset(TS, select = -c(X, datetime))
+TS = subset(TS, select = -c(X, datetime, V11))  #Remove Z10 which is V11 because it behaves strangely
 
 ```
 
-Because we have so many zones, we might want to simplify our data and only use the mean over the zones. If we do not do that, the temperature vs weight plot will have different clusters and the TS plot will also have more lines. A simple mean should be ok due to them having the same units.
+Because we have so many zones, we might want to simplify our data and only use the sum over all the zones. If we do not do that, the temperature vs weight plot will have different clusters and the TS plot will also have more lines. A simple mean should be ok due to them having the same units.
 
-```{r meanData}
-TSmeans <- rowMeans(TS[1:29414, ])
-TSTmeans <- rowMeans(TST[1:29414, ])
-mean_temp <- mean(TSTmeans)
-data <- as.data.frame(cbind(TSTmeans, TSmeans))
+
+```{r sumData}
+
+TS_sum <- rowSums(TS[1:29414, ])
+TST_mean <- rowMeans(TST[1:29414, ])
+data <- as.data.frame(cbind(TST_mean, TS_sum))
 ```
 
 The figure shows some relations shipt between temperature and load but as temperature increases/decreases from the mean (around 56 °F), the energy load increases.
 
 ```{r plotLoadvsTemp}
 
-plot(TSTmeans, TSmeans, 
+plot(TST_mean, TS_sum, 
      main = "Relationship between energy load and temperature", 
      xlab = "Temperature [F]", 
      ylab = "Load [xW]", 
@@ -59,53 +60,66 @@ plot(TSTmeans, TSmeans,
 
 ```
 
-On TS form...
 
-```{r cscc}
-#for mean every 24 hours-----------------------
-days <- 365
+We make time series obect with zoo and ts. The zoo object have the time but the ts object only has the order.
+Load_zoo_zones includes all the zones but the load_zoo includes the sum of all of the loads at a time unit.
 
-D <- matrix(data=0,nrow=20,ncol=days)
-colnames(D) <- c(as.character(1:days))
 
-i <- 1
-idx <- 1
-while (idx<=days){
-  
-  daymean <- colMeans(TS[i:i+23,])
-  D[1:20,idx] <- daymean
-  
-  i <- i+24
-  idx <- idx+1
-}
+```{r timeSeries}
+library(zoo)
+library(xts)
+library(ggplot2)
 
-D <- t(D)
-image(1:days, 1:20, D, xlab = "The first year [days]", ylab = "Zones", main = "'Heatmap' of zones for the first year")
 
-#for all values---------------------
-tsyearlength <- 365*23
-TS_year <- as.matrix(TS[1:tsyearlength,1:20])
-image(1:tsyearlength, 1:20, TS_year, xlab = "The first year [days]", ylab = "Zones", main = "'Heatmap' of zones for the first year")
+times <- as.POSIXct(row.names(data), format = "%Y-%m-%d %H:%M:")
+timesNAomit <- na.omit(times) #for NA values we omit 
 
+load_zoo_zones <- zoo( # all zones
+  x         = TS,
+  order.by  = timesNAomit,
+  frequency = 24
+)
+
+
+load_zoo <- zoo( #sum of the zones
+  x         = data$TS_sum,
+  order.by  = timesNAomit,
+  frequency = 24
+)
+
+temperature_zoo <- zoo(
+  x         = data$TST_mean,
+  order.by  = timesNAomit,
+  frequency = 24
+)
+
+data_zoo <- cbind(load_zoo, temperature_zoo)
+
+load_ts <- ts(TS_sum, start = as.numeric(times[1]), frequency = 24) 
 ```
 
 
+Here we will test 2004 and see how each zone behaves throughout the year. Because the first figure shows that there is a lot of difference in the magintude of load between zones we standardize it and plot it again. The standardized plot is much nicer.
+
 ```{r ssss}
-#for mean every 24 hours - Standardized-----------------------
-d_st <- matrix(data=0,nrow=20,ncol=1)
-dim(D)
-for (i in 1:dim(D)[2]){
-  temp <- sd(D[,i])
-  d_st[i] <- temp
-}
 
-for (i in 1:dim(D)[2]){ #skipta um zone
-  for (j in 1:dim(D)[1]){ #dagar í einu zoni
-    D[j,i] <- D[j,i]/d_st[i]
-  }
-}
+years <- c("2004", "2005", "2005", "2006", "2007", "2008")
+year = years[1]
+temp_start <-  paste(c(year, "-01-", "01 01:00:00"), collapse = "")
+temp_end <-  paste(c(year, "-12-", "31 24:00:00"), collapse = "")
+as.POSIXct(temp_start)
+ystart <- which(as.POSIXct(temp_start) == index(load_zoo_zones))
+yend <- which(as.POSIXct(temp_end) == index(load_zoo_zones))-1 #-1 til þess að losna við firsta value á næsta ári
+year_zoo_zones <- load_zoo_zones[ystart:yend]
 
-image(1:days, 1:20, D, xlab = "The first year [days]", ylab = "Zones", main = "Standardized 'Heatmap' of zones for the first year")
+TS_year <- as.matrix(coredata(year_zoo_zones[1:dim(year_zoo_zones)[1],1:dim(year_zoo_zones)[2]]))
+
+p1 <- image(x = 1:dim(year_zoo_zones)[1], 
+      y = 1:dim(year_zoo_zones)[2], 
+      z = TS_year, 
+      xlab = "The first year [hours]", ylab = "Zones", main = "'Heatmap' of zones for the first year")
+
+
 
 ts_st <- matrix(data=0,nrow=20,ncol=1)
 for (i in 1:dim(TS_year)[2]){
@@ -119,71 +133,124 @@ for (i in 1:dim(TS_year)[2]){ #skipta um zone
   }
 }
 
-image(1:tsyearlength, 1:20, TS_year, 
-            xlab = "The first year [days]", 
-            ylab = "Zones", main = "Standardized 'Heatmap' of zones for the first year")
+p2 <- image(x = 1:dim(year_zoo_zones)[1], 
+      y = 1:dim(year_zoo_zones)[2], 
+      z = TS_year,
+      ylab = "zones",
+      xlab = "The first year [hours]", 
+      main = "Standardized 'Heatmap' of zones for the first year")
 
+
+p1
+p2
+
+```
+
+
+
+
+
+# Smoothing
+
+```{r standardized years sum compare} 
+#sum everything and compare years
+
+smoothpars <- c(0,24,24*7, 24*30) #0 fyrir klukkustund, 24 fyrir dag, 24*7 fyrir vikur
+years <- c("2004", "2005", "2006", "2007", "2008")
+
+size_year = c(0,0,0,0,0)
+for (i in (1:(length(years)-1))){
+  year = years[i]
+  temp_start <-  paste(c(year, "-01-", "01 01:00:00"), collapse = "")
+  temp_end <-  paste(c(year, "-12-", "31 24:00:00"), collapse = "")
+
+  if (i == 4){yend = length(load_zoo)} else {yend <- which(as.POSIXct(temp_end) == index(load_zoo))-1} #-1 til þess að losna við firsta value á næsta ári
+  ystart <- which(as.POSIXct(temp_start) == index(load_zoo))
+  
+  size_year[i] <- length(load_zoo[ystart:yend])
+}
+  
+
+
+
+
+for (s in smoothpars){
+  
+  year_zoo <- matrix(data = NA, nrow = 5, ncol = max(size_year))
+  
+  for (i in (1:(length(years)-1))){
+    year = years[i]
+    temp_start <-  paste(c(year, "-01-", "01 01:00:00"), collapse = "")
+    temp_end <-  paste(c(year, "-12-", "31 24:00:00"), collapse = "")
+    as.POSIXct(temp_start)
+    if (i == 4){yend = length(load_zoo)} else {yend <- (which(as.POSIXct(temp_end) == index(load_zoo))-1)} #-1 til þess að losna við firsta value á næsta ári
+    ystart <- which(as.POSIXct(temp_start) == index(load_zoo))
+    
+    temp <-  coredata(load_zoo[ystart:yend])
+    year_zoo[i,1:length(temp)] <- temp
+  }
+  year_zoo <- as.matrix(coredata(year_zoo))
+  
+  
+  
+  if (s > 0){
+    
+    ##Average accross 24 horys
+    year_zoo_smooth <- matrix(data = NA, nrow = 5, ncol = ceiling(max(size_year)/s))
+    idx1 <- 1
+    idx2 <- 1
+    while (idx2 <= dim(year_zoo)[2]-(s-1)){
+      temp <- year_zoo[,(idx2:(idx2+(s-1)))]
+      temp <- rowMeans(temp)
+      year_zoo_smooth[,idx1] <- coredata(temp)
+      idx2 <- idx2+s
+      idx1 <- idx1+1
+    }
+    year_zoo <- year_zoo_smooth
+}
+
+
+
+p1 <- image(x = 1:dim(year_zoo)[1], 
+      y = 1:dim(year_zoo)[2], 
+      z = year_zoo, 
+      xlab = "The first year [hours]", ylab = "Zones", main = "'Heatmap' of zones for the first year")
+
+
+
+
+year_zoo <- t(year_zoo)
+colnames(year_zoo) <- c("year1", "year2", "year3", "year4", "year5")
+year_zoo <- as.data.frame(year_zoo)
+
+
+p2 <- ggplot(data=year_zoo, aes(x=index(year_zoo))) + 
+                geom_line(aes(y=year1), color = "Yellow") + 
+                geom_line(aes(y=year2), color = "Red") + 
+                geom_line(aes(y=year3), color = "Green") + 
+                geom_line(aes(y=year4), color = "Blue") + 
+                geom_line(aes(y=year5), color = "Black") +
+                xlab('Time') +
+                ylab('Load')
+
+p1
+print(p2)
+}
 
 ```
 
 
 
-```{r ssfsfs}
-#Þetta er yfir allar klukkustundir en hitt var meðalhiti yfir dag
-temp <- 23*365
-TSmeans_year <- TSmeans[1:temp]
-temp <- as.matrix(TSmeans_year)
-image(x=1:length(TSmeans_year), y=1, z=temp, 
-      ylab = NULL,
-      xlab = "hours")
 
-```
-
-```{r ksfk}
-
-```
-
-```{r ts}
-library(zoo)
-library(xts)
-library(ggplot2)
-
-
-times <- as.POSIXct(row.names(data), format = "%Y-%m-%d %H:%M:")
-timesNAomit <- na.omit(times) 
-load.means.zoo <- zoo(
-  x         = data$TSmeans,
-  order.by  = timesNAomit,
-  frequency = 24
-)
-
-temperature.means.zoo <- zoo(
-  x         = data$TSTmeans,
-  order.by  = timesNAomit,
-  frequency = 24
-)
-
-load.zoo <- zoo(
-  x         = TS,
-  order.by  = timesNAomit,
-  frequency = 24
-)
-
-
-mean.data <- cbind(load.means.zoo, temperature.means.zoo)
-
-load.means.ts <- ts(TSmeans, start = as.numeric(times[1]), frequency = 24)
-
-
-```
+Last graph really noisy. Will try to take an average of day and then plot again....
 
 
 ```{r histogramskkkkk}
 
-## DAMSNssdfsfg
 
 
-load.means.diff <- diff(load.means.ts)
+
+load.means.diff <- diff(TS_sum)
 
 
 
@@ -206,7 +273,7 @@ p2 <- ggplot(d, aes(x = V1)) +
 
 
 
-d <- coredata(load.means.ts)
+d <- coredata(TS_sum)
 bw <- 2 * IQR(d) / length(d)^(1/3) #Freedman-Diaconis rule 
 p3 <- ggplot(, mapping = aes(x = d)) +
       labs(title= "Histogram of load",
@@ -227,13 +294,13 @@ Then the data is plotted. The y axis og the ggplot has to be changed so that the
 
 ```{r plotTimeSeries}
 
-p1 <- ggplot(mean.data, aes(timesNAomit)) + 
-      geom_line(aes(y = load.means.zoo)) + 
+p1 <- ggplot(data_zoo, aes(timesNAomit)) + 
+      geom_line(aes(y = load_zoo)) + 
       labs(title= "Correlation of load and temperature (no units)",
       y="Load", x = "Year")
 
-p2 <- ggplot(mean.data, aes(timesNAomit))+
-      geom_line(aes(y = temperature.means.zoo))+
+p2 <- ggplot(data_zoo, aes(timesNAomit))+
+      geom_line(aes(y = temperature_zoo))+
       labs(y="Temperature", x = "Year")
       
 grid.arrange(p1, p2, nrow = 2)
@@ -251,7 +318,7 @@ In the ACF plot this can be more clearly seen.
 
 ```{r chunk 5, cache = TRUE}
 library(forecast)
-gglagplot(load.means.ts, do.lines = FALSE, set.lags = 1:30, cex=0.1, colour = FALSE)
+gglagplot(TS_sum, do.lines = FALSE, set.lags = 1:30, cex=0.1, colour = FALSE)
 ```
 
 
@@ -260,9 +327,9 @@ gglagplot(load.means.ts, do.lines = FALSE, set.lags = 1:30, cex=0.1, colour = FA
 If we go to even more lags the datas 24 hour periods can be seen better.
 
 ```{r chunk 4.3}
-library(forecast)
-p1 <- ggAcf(load.means.ts)
-p2 <- ggAcf(load.means.ts, lag.max = 24*35)
+library(forecast, echo=FALSE)
+p1 <- ggAcf(TS_sum)
+p2 <- ggAcf(TS_sum, lag.max = 24*35)
 grid.arrange(p1, p2, nrow = 2)
 ```
 
@@ -275,10 +342,10 @@ There seems to be a seasonal period of 24 hours. Also, when lags are increased t
 Now to partial autocorrelation.
 
 ```{r chunk 6}
-p1 <- ggAcf(load.means.ts, type = "partial")
-p2 <- ggAcf(load.means.ts, type = "partial", lag.max = 24*7)
+p1 <- ggAcf(TS_sum, type = "partial")
+p2 <- ggAcf(TS_sum, type = "partial", lag.max = 24*7)
 
-p3 <- ggAcf(load.means.ts, type = "partial", lag.max = 24*7*4)
+p3 <- ggAcf(TS_sum, type = "partial", lag.max = 24*7*4)
 
 grid.arrange(p1, p2, p3,  ncol = 2, layout_matrix = rbind(c(1,2), c(3,3)))
 
@@ -294,9 +361,9 @@ There is a significant partial autocorrelation on lag 1, 2, 3, 13:17, 24,25, and
 
 ```{r chunk 7}
 
-p1 <- autoplot(load.means.zoo[1:24], main="24 hours from baseline")
-p2 <- autoplot(load.means.zoo[1:24*7], main="week from baseline")
-p3 <- autoplot(load.means.zoo[1:24*7*4], main="month from baseline")
+p1 <- autoplot(load_zoo[1:24], main="24 hours from baseline")
+p2 <- autoplot(load_zoo[1:24*7], main="week from baseline")
+p3 <- autoplot(load_zoo[1:24*7*4], main="month from baseline")
 
 
 grid.arrange(p1, p2, p3,  ncol = 2, layout_matrix = rbind(c(1,2), c(3,3)))
@@ -347,7 +414,7 @@ for (y in 1:5){
     sDay <- temp_start
     eDay <-temp_end
     
-    monthData <- coredata(window(load.means.zoo, start = as.POSIXct(sDay), end = as.POSIXct(eDay)))
+    monthData <- coredata(window(load_zoo, start = as.POSIXct(sDay), end = as.POSIXct(eDay)))
     lengthMonth <- length(monthData)
 
     D[MaxIndex:(MaxIndex+lengthMonth-1),m] <-monthData[1:lengthMonth]
@@ -374,21 +441,58 @@ boxplot(D,
 ```{r chunk 9}
 
 
+Transformation <- function(TS, Lambda)
+{
+  w <- vector()
+  for(i in 1:length(TS)){
+    if (Lambda == 0){
+      w[i] <- log(TS[i])
+    }
+    else{
+      w[i] <- (((TS[i])^Lambda)-1)/Lambda
+    }
+  }
+  return(w)
+}
+
+BackTransform <- function(TS, Lambda){
+    w <- vector()
+  for(i in 1:length(TS)){
+    if (Lambda == 0){
+      w[i] <- exp(TS[i])
+    }
+    else{
+      w[i] <- (Lambda*TS[i]+1)^(1/Lambda)
+    }
+  }
+  return(w)
+  
+}
+
+Lambda <- c(-1, 0, 1, 2)*2
+
+for (i in Lambda){
+  TS_sum_transformed <- Transformation(TS_sum, i)
+  plot.zoo(TS_sum_transformed)
+}
+
+
+Lambda <- BoxCox.lambda(TS_sum)
+TS_sum_transformed <- Transformation(TS_sum, Lambda)
+plot.zoo(TS_sum_transformed)
 
 
 
 
+TS_sum_backtransformed <- BackTransform(TS_sum_transformed, Lambda)
+plot.zoo(TS_sum_backtransformed)
 
 
 
-#library(Rfast)
-#mins <- colMins(D)
-#maxs <- colMaxs(D)
-#minmaxData <- cbind(mins,maxs)
-#row.names(minmaxData) <- colnames(D)
-#barplot(t(minmaxData), col=c("Blue","Red"), legend = c("Min load", "Max load"),
-#        main = "Min-max load per month",
-#        ylab = "Energy load")
+#bias adjust then
+
 ```
+
+
 
 
