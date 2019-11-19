@@ -424,6 +424,12 @@ server <- function(input, output) {
       }
     }
     
+    query <- paste("select datetime,V", d+1," as value from temp_table", sep="")
+    kkk <- sqldf(query)
+    
+    query <- paste("select datetime,V", f+1," as value from temp_table", sep="")
+    ggg <- sqldf(query)
+    
     row.names(TST) <- TST$datetime
     TST = subset(TST, select = -c(datetime))
     
