@@ -105,6 +105,24 @@ nff = function(x = NULL, n = NULL, up = 10L, plot = TRUE, add = FALSE, main = NU
 }
 
 
+#temperature vs load
+temp <- subset(TST, select = -c(X, datetime))
+TS_sum <- rowSums(temp[1:29414, ])
+
+temp <- subset(TS, select = -c(X, datetime, V11))
+TST_mean <- rowMeans(TST[1:29414, ])
+
+TSTvsTS <- plot(TST_mean, TS_sum, 
+           main = "Relationship between energy load and temperature", 
+           xlab = "Temperature [F]", 
+           ylab = "Load [xW]", 
+           cex = 0.1,
+           panel.first = grid(nx = NULL, ny = NULL, col = "red", lty = "dotted"))
+
+
+
+
+
 ui <- navbarPage("Energy Forecast Data Visualisation",
                  tabPanel("Time Series",
                           sidebarPanel(width=3,
