@@ -4,6 +4,8 @@ library(data.table)
 library(TSA)
 TS= fread("./../Data/TS.csv", sep=",")
 load_table= data.frame(TS)
+
+
 TST= fread("./../Data/TST.csv", sep=",")
 temp_table= data.frame(TST)
 
@@ -423,10 +425,10 @@ server <- function(input, output) {
     }
     
     row.names(TST) <- TST$datetime
-    TST = subset(TST, select = -c(X, datetime))
+    TST = subset(TST, select = -c(datetime))
     
     row.names(TS) <- TS$datetime
-    TS = subset(TS, select = -c(X, datetime))
+    TS = subset(TS, select = -c(datetime))
     
     TSmeans <- rowMeans(TS[1:29414, ])
     TSTmeans <- rowMeans(TST[1:29414, ])
