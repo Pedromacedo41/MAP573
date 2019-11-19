@@ -1,6 +1,6 @@
 
-TS <- read.csv("../Data/Complete_TS.csv")
-TST <- read.csv("../Data/TST.csv")
+TS <- read.csv("./../Data/Complete_TS.csv")
+TST <- read.csv("./../Data/TST.csv")
 
 
 row.names(TST) <- TST$datetime

@@ -1,37 +1,105 @@
+library(shiny)
 library(dygraphs)
 library(data.table)
-load_table= fread("./../Data/TS.csv", sep=",")
-load_table= data.frame(load_table)
-temp_table= fread("./../Data/TST.csv", sep=",")
-temp_table= data.frame(temp_table)
+library(TSA)
+TS= fread("./../Data/TS.csv", sep=",")
+load_table= data.frame(TS)
+TST= fread("./../Data/TST.csv", sep=",")
+temp_table= data.frame(TST)
 
-ts= fread("./../Data/TSDaily.csv", sep=",")
-ts= data.frame(ts)
+xd= fread("./../Data/Load_prediction.csv", sep=",")
+xd= data.frame(xd)
 
 library(xts)          # To make the convertion data-frame / xts format
 library(tidyverse)
 library(lubridate)
-library(DT)
 library(sqldf)
 
 load_table$datetime <- ymd_hms(load_table$datetime)
 temp_table$datetime <- ymd_hms(temp_table$datetime)
-ts$datetime <- ymd_hms(ts$datetime)
+
+predictions= c()
+hm <-seq(as.Date("2008-07-08"), as.Date("2008-07-08")+ as.numeric(length(xd$V1)/24) , by="days")
+for(j in 1:length(hm)){
+  for(i in 1:24){
+    predictions <- rbind(predictions, paste(hm[j], " ", i, ":00:00", sep= ""))
+  }
+}
+predictions <-data.frame("datetime"= ymd_hms(predictions[1:length(xd$V1)]), "value"= as.numeric(xd$V1/1000))
 #don <- xts(x = load_table$V2, order.by = load_table$datetime)
 #zt <- xts(x = load_table[,3], order.by = load_table$datetime)
 
-a= list()
+k= list()
+a=list()
 for(i in 1:20){
+  k <- c(k, paste("Zone", i, " Load"))
   a <- c(a, paste("Zone", i, " Load"))
 }
 
+l= list()
 for(i in 1:11){
+  l <- c(l, paste("St.", i, " Temp."))
   a <- c(a, paste("St.", i, " Temp."))
 }
+
+a=c(k,l)
 
 d= list()
 for(i in 1:20){
   d <- c(d, paste("Zone", i, " Forecast"))
+}
+
+Table_period  <- function(tb_init, period) {
+  i <-1
+  period
+  gd=c()
+  tb=c(tb_init$datetime[1])
+  while(TRUE){
+    if((i+period)>length(tb_init$datetime)){
+      tb <- c(tb,tb_init$datetime[i])
+      k <- c(tb_init$value[i:(i+length(tb_init$datetime)%%period)])
+      k <- c(k,rep(NA,times=c(period-length(k))))
+      gd <- rbind(gd,k)
+      break;
+    }else{
+      tb <- c(tb,tb_init$datetime[i])
+      gd <- rbind(gd,tb_init$value[i:(i+period-1)])
+      i=i+period
+    }
+  }
+  #print(tb)
+  return(data.frame("datetime"= tb[2:length(tb)], gd))
+}
+
+nff = function(x = NULL, n = NULL, up = 10L, plot = TRUE, add = FALSE, main = NULL, ...){
+  #The direct transformation
+  #The first frequency is DC, the rest are duplicated
+  dff = fft(x)
+  #The time
+  t = seq(from = 1, to = length(x))
+  #Upsampled time
+  nt = seq(from = 1, to = length(x)+1-1/up, by = 1/up)
+  #New spectrum
+  ndff = array(data = 0, dim = c(length(nt), 1L))
+  ndff[1] = dff[1] #Always, it's the DC component
+  if(n != 0){
+    ndff[2:(n+1)] = dff[2:(n+1)] #The positive frequencies always come first
+    #The negative ones are trickier
+    ndff[length(ndff):(length(ndff) - n + 1)] = dff[length(x):(length(x) - n + 1)]
+  }
+  #The inverses
+  indff = fft(ndff/73, inverse = TRUE)
+  idff = fft(dff/73, inverse = TRUE)
+  if(plot){
+    if(!add){
+      plot(x = t, y = x, pch = 16L, xlab = "Time", ylab = "Measurement",
+           main = ifelse(is.null(main), paste(n, "harmonics"), main))
+      lines(y = Mod(idff), x = t, col = adjustcolor(1L, alpha = 0.5))
+    }
+    lines(y = Mod(indff), x = nt, ...)
+  }
+  ret = data.frame(time = nt, y = Mod(indff))
+  return(ret)
 }
 
 
@@ -52,20 +120,68 @@ ui <- navbarPage("Energy Forecast Data Visualisation",
                  ),
                  tabPanel("3D Time Series", 
                           sidebarPanel(
-                            dateRangeInput("dates", strong("Date range")),
-                            selectInput("select", strong("Data source (Zones,stations)"),choices =a,selected = 1),
-                            textInput("text", h3("Periodicity"), value = " "),
-                            checkboxInput("checkbox", "Include Forecast Data (if it exists)", value = FALSE)
+                            selectInput("select", strong("Zone"),choices =k,selected = 1),
+                            textInput("text", h3("Periodicity"), value = "24"),
+                            checkboxInput("checkbox", "Normalize", value = FALSE),
+                            sliderInput("slider1", h3("Sliders"),
+                                        min = 0, max = 90, value = 50),
+                            selectInput("select", strong("Forecast Zone"),choices =k,selected = 1),
+                            checkboxInput("checkbox2", "Include Forecast Data", value = TRUE)
                           ),
                           mainPanel(
                             tabsetPanel(
-                              tabPanel("Plot", dygraphOutput("dygraph3")),
+                              tabPanel("Plot", plotOutput("dygraph3")),
                               tabPanel("Summary", verbatimTextOutput("summary5")),
                               tabPanel("Table", tableOutput("table5"))
                             )
                           )
-                ),
-                tabPanel("Statistical Analysis")
+                 ),
+                 tabPanel("3D Time Series", 
+                          sidebarPanel(
+                            selectInput("select2", strong("Stations"),choices =l,selected = 1),
+                            textInput("text2", h3("Periodicity"), value = "24"),
+                            sliderInput("slider11", h3("Sliders"),
+                                        min = 0, max = 90, value = 50),
+                          ),
+                          mainPanel(
+                            tabsetPanel(
+                              tabPanel("Plot", plotOutput("dygraph33")),
+                              tabPanel("Summary", verbatimTextOutput("summary55")),
+                              tabPanel("Table", tableOutput("table55"))
+                            )
+                          )
+                 ),
+                 tabPanel("Temp-Load Correlations",
+                          sidebarPanel(
+                            selectInput("select3", strong("Zone"),choices =k,selected = 1),
+                            selectInput("select4", strong("Stations"),choices =l,selected = 1)
+                          ),
+                          mainPanel(
+                            tabsetPanel(
+                              tabPanel("Plot", plotOutput("dygraph333")),
+                              tabPanel("Summary", verbatimTextOutput("summar")),
+                              tabPanel("Table", tableOutput("tabl"))
+                            )
+                          )
+                 ),
+                 tabPanel("Fourier Analysis",
+                          sidebarPanel(
+                            selectInput("select5", strong("Zone"),choices =k,selected = 1),
+                            selectInput("select6", strong("Stations"),choices =l,selected = 1)
+                          ),
+                          mainPanel(
+                            tabsetPanel(
+                              tabPanel("Plot", plotOutput("dygraph5")),
+                              tabPanel("Cross Plot", plotOutput("dygraph6")),
+                              tabPanel("Summary", verbatimTextOutput("summ"))
+                            )
+                          )
+                 ),
+                 tabPanel("Statistical Analysis",
+                          mainPanel(
+                            htmlOutput("inc")
+                          )
+                 )
 ) 
 
 server <- function(input, output) {
@@ -124,60 +240,309 @@ server <- function(input, output) {
     }
     summary(don)
   })
-
-  output$dygraph <- renderPlot({
-      gg <- sqldf("select * from ts where X1 = 1")
-      gg <- na.locf(gg)
-      temp  <- xts(x = gg[,3:26], order.by = gg$datetime)
-
-      temp <- na.locf(temp)
-
-      Z <- temp
-      cnames <- colnames(Z)
-      col=c("yellow","red")
-      yred <- colorRampPalette(col)
-      par(mar=c(3,1,1,1))
-      time.axis <- axTicksByTime(Z)
-      Z <- as.xts(t(apply(Z,1,function(x) spline(as.vector(coredata(x)), n=1*length(x))$y)))
-      pm <- persp(z=Z-min(Z),
-                  x=(1:NROW(Z))/length(time.axis),
-                  y=(1:NCOL(Z))/1,
-                  shade=.3, ltheta=20,
-                  r=10,
-                  theta=50,
-                  col=rep(rep(yred(NCOL(Z)/1),each=1),each=(NROW(Z)-1)),
-                  scale=F, border=NA,box=FALSE)
-
-
-
-      x_axis <- seq(1, NROW(Z), length.out=length(time.axis))/length(time.axis)
-      y_axis <- seq(1, NCOL(Z), length.out=NCOL(Z)/1)/1
-
-      # x-axis
-      xy0 <- trans3d(x_axis,y_axis[1],0,pm)
-      xy1 <- trans3d(x_axis,y_axis[1]-0.3,0,pm)
-      lines(trans3d(x_axis,y_axis[1],0,pm),col="#555555")
-      segments(xy0$x,xy0$y,xy1$x,xy1$y, col="#555555")
-      #text(xy1$x, xy1$y, labels=as.character(format(index(Z)[x_axis*10],"%m/%d/%y")), pos=1, offset=.25,cex=x.cex, srt=srt)
-      text(xy1$x, xy1$y, labels=names(time.axis), pos=1, offset=.25,cex=0.75, srt=0)
-        
-      # y-axis
-      xy0 <- trans3d(x_axis[length(x_axis)], y_axis, 0, pm)
-      xy1 <- trans3d(x_axis[length(x_axis)]+.3, y_axis, 0, pm)
-      yz0 <- trans3d(x_axis[length(x_axis)], y_axis, coredata(Z)[NROW(Z),seq(1,NCOL(Z),by=1)], pm) # vertical y
-      lines(trans3d(x_axis[length(x_axis)], y_axis, 0, pm),col="#555555")
-      segments(xy0$x,xy0$y,xy1$x,xy1$y,col="#555555")
-      #text(xy1$x, xy1$y, labels=cnames, pos=4, offset=.5,cex=.75)
-
-      #segments(xy0$x,xy0$y,yz0$x,yz0$y, col="#555555") # y-axis vertical lines
-
-      # z-axis
-      z_axis <- seq(trunc(min(Z,na.rm=TRUE)), round(max(Z, na.rm=TRUE)), by= 5)
-      xy0 <- trans3d(x_axis[length(x_axis)], y_axis[length(y_axis)], z_axis- min(Z), pm)
-      xy1 <- trans3d(x_axis[length(x_axis)]+0.3, y_axis[length(y_axis)], z_axis- min(Z), pm)
-      lines(trans3d(x_axis[length(x_axis)], y_axis[length(y_axis)], z_axis- min(Z), pm))
-      segments(xy0$x,xy0$y,xy1$x,xy1$y)
+  
+  output$dygraph3 <- renderPlot({
+    period <-as.numeric(input$text)
+    angle=input$slider1
+    d <-0
+    for(j in 1:20){
+      if(input$select==a[j]){
+        d <-j
+      }
+    }
+    query <- paste("select datetime,V", d+1," as value from load_table", sep="")
+      
+    ggg <- sqldf(query)
+    
+    
+    tim <- c()
+    
+    pred2 <- Table_period(ggg,period)
+    
+    if(input$checkbox2){
+      pred <- Table_period(predictions,period)
+      predfin= rbind(pred,pred2)
+      tim <- xts(x = predfin[,2:(1+period)], order.by = predfin$datetime)
+    }else{
+      tim <- xts(x = pred2[,2:(1+period)], order.by = pred2$datetime)
+    }
+    
+    
+    tim <- na.locf(tim)
+    Z <-tim
+    
+    
+    cnames <- colnames(Z)
+    col=c("yellow","red")
+    col2=c("white","black")
+    yred <- colorRampPalette(col)
+    yred2 <- colorRampPalette(col2)
+    par(mar=c(3,1,1,1))
+    time.axis <- axTicksByTime(Z)
+    Z <- as.xts(t(apply(Z,1,function(x) spline(as.vector(coredata(x)), n=1*length(x))$y)))
+    par(mfrow=c(1,1))
+    pm <- persp(z=Z-min(Z),
+                x=(1:NROW(Z))/length(time.axis),
+                y=(1:NCOL(Z))/1,
+                shade=.3, ltheta=20,
+                r=10,
+                theta=angle,
+                col=rep(rep(yred(NCOL(Z)/1)),each=(NROW(Z)-1)),
+                scale=input$checkbox, border=NA,box=FALSE)
+    
+    x_axis <- seq(1, NROW(Z), length.out=length(time.axis))/length(time.axis)
+    y_axis <- seq(1, NCOL(Z), length.out=NCOL(Z)/1)/1
+    
+    # x-axis
+    xy0 <- trans3d(x_axis,y_axis[1],0,pm)
+    xy1 <- trans3d(x_axis,y_axis[1]-0.3,0,pm)
+    lines(trans3d(x_axis,y_axis[1],0,pm),col="#555555")
+    segments(xy0$x,xy0$y,xy1$x,xy1$y, col="#555555")
+    #text(xy1$x, xy1$y, labels=as.character(format(index(Z)[x_axis*10],"%m/%d/%y")), pos=1, offset=.25,cex=x.cex, srt=srt)
+    text(xy1$x, xy1$y, labels=names(time.axis), pos=1, offset=.25,cex=0.75, srt=0)
+    
+    # y-axis
+    xy0 <- trans3d(x_axis[length(x_axis)], y_axis, 0, pm)
+    xy1 <- trans3d(x_axis[length(x_axis)]+.3, y_axis, 0, pm)
+    yz0 <- trans3d(x_axis[length(x_axis)], y_axis, coredata(Z)[NROW(Z),seq(1,NCOL(Z),by=1)], pm) # vertical y
+    lines(trans3d(x_axis[length(x_axis)], y_axis, 0, pm),col="#555555")
+    segments(xy0$x,xy0$y,xy1$x,xy1$y,col="#555555")
+    #text(xy1$x, xy1$y, labels=cnames, pos=4, offset=.5,cex=.75)
+    
+    #segments(xy0$x,xy0$y,yz0$x,yz0$y, col="#555555") # y-axis vertical lines
+    
+    # z-axis
+    z_axis <- seq(trunc(min(Z,na.rm=TRUE)), round(max(Z, na.rm=TRUE)), by= 5)
+    xy0 <- trans3d(x_axis[length(x_axis)], y_axis[length(y_axis)], z_axis- min(Z), pm)
+    xy1 <- trans3d(x_axis[length(x_axis)]+0.3, y_axis[length(y_axis)], z_axis- min(Z), pm)
+    lines(trans3d(x_axis[length(x_axis)], y_axis[length(y_axis)], z_axis- min(Z), pm))
+    segments(xy0$x,xy0$y,xy1$x,xy1$y)
+    
+    if(input$checkbox2){
+      h <-Z
+      h["/2008-07-06",1:period] <- NA
+      par(new=TRUE)
+      pm2<-persp(z=h-min(Z),
+                 x=(1:NROW(Z))/length(time.axis),
+                 y=(1:NCOL(Z))/1,
+                 shade=.3, ltheta=20,
+                 r=200,
+                 theta=angle,
+                 col=rep(rep(yred2(NCOL(Z)/1)),each=(NROW(Z)-1)),
+                 scale=input$checkbox, border=NA,box=FALSE)
+    }
+    
+  
   })
+  
+  output$dygraph33 <- renderPlot({
+    period <-as.numeric(input$text2)
+    angle=input$slider11
+    d <-0
+    for(j in 1:11){
+      if(input$select2==l[j]){
+        d <-j
+      }
+    }
+    query <- paste("select datetime,V", d+1," as value from temp_table", sep="")
+    
+    kkk <- sqldf(query)
+    
+    
+    tim <- c()
+    
+    pred2 <- Table_period(kkk,period)
+    tim <- xts(x = pred2[,2:(1+period)], order.by = pred2$datetime)
+    
+    
+    tim <- na.locf(tim)
+    Z <-tim
+    
+    
+    cnames <- colnames(Z)
+    col=c("yellow","red")
+    col2=c("white","black")
+    yred <- colorRampPalette(col)
+    yred2 <- colorRampPalette(col2)
+    par(mar=c(3,1,1,1))
+    time.axis <- axTicksByTime(Z)
+    Z <- as.xts(t(apply(Z,1,function(x) spline(as.vector(coredata(x)), n=1*length(x))$y)))
+    par(mfrow=c(1,1))
+    pm <- persp(z=Z-min(Z),
+                x=(1:NROW(Z))/length(time.axis),
+                y=(1:NCOL(Z))/1,
+                shade=.3, ltheta=20,
+                r=10,
+                theta=angle,
+                col=rep(rep(yred(NCOL(Z)/1)),each=(NROW(Z)-1)),
+                scale=input$checkbox, border=NA,box=FALSE)
+    
+    x_axis <- seq(1, NROW(Z), length.out=length(time.axis))/length(time.axis)
+    y_axis <- seq(1, NCOL(Z), length.out=NCOL(Z)/1)/1
+    
+    # x-axis
+    xy0 <- trans3d(x_axis,y_axis[1],0,pm)
+    xy1 <- trans3d(x_axis,y_axis[1]-0.3,0,pm)
+    lines(trans3d(x_axis,y_axis[1],0,pm),col="#555555")
+    segments(xy0$x,xy0$y,xy1$x,xy1$y, col="#555555")
+    #text(xy1$x, xy1$y, labels=as.character(format(index(Z)[x_axis*10],"%m/%d/%y")), pos=1, offset=.25,cex=x.cex, srt=srt)
+    text(xy1$x, xy1$y, labels=names(time.axis), pos=1, offset=.25,cex=0.75, srt=0)
+    
+    # y-axis
+    xy0 <- trans3d(x_axis[length(x_axis)], y_axis, 0, pm)
+    xy1 <- trans3d(x_axis[length(x_axis)]+.3, y_axis, 0, pm)
+    yz0 <- trans3d(x_axis[length(x_axis)], y_axis, coredata(Z)[NROW(Z),seq(1,NCOL(Z),by=1)], pm) # vertical y
+    lines(trans3d(x_axis[length(x_axis)], y_axis, 0, pm),col="#555555")
+    segments(xy0$x,xy0$y,xy1$x,xy1$y,col="#555555")
+    #text(xy1$x, xy1$y, labels=cnames, pos=4, offset=.5,cex=.75)
+    
+    #segments(xy0$x,xy0$y,yz0$x,yz0$y, col="#555555") # y-axis vertical lines
+    
+    # z-axis
+    z_axis <- seq(trunc(min(Z,na.rm=TRUE)), round(max(Z, na.rm=TRUE)), by= 5)
+    xy0 <- trans3d(x_axis[length(x_axis)], y_axis[length(y_axis)], z_axis- min(Z), pm)
+    xy1 <- trans3d(x_axis[length(x_axis)]+0.3, y_axis[length(y_axis)], z_axis- min(Z), pm)
+    lines(trans3d(x_axis[length(x_axis)], y_axis[length(y_axis)], z_axis- min(Z), pm))
+    segments(xy0$x,xy0$y,xy1$x,xy1$y)
+    
+    
+  })
+  
+  output$dygraph333 <- renderPlot({
+    d <-0
+    for(j in 1:11){
+      if(input$select3==l[j]){
+        d <-j
+      }
+    }
+    f <-0
+    for(j in 1:20){
+      if(input$select4==a[j]){
+        f <-j
+      }
+    }
+    
+    row.names(TST) <- TST$datetime
+    TST = subset(TST, select = -c(X, datetime))
+    
+    row.names(TS) <- TS$datetime
+    TS = subset(TS, select = -c(X, datetime))
+    
+    TSmeans <- rowMeans(TS[1:29414, ])
+    TSTmeans <- rowMeans(TST[1:29414, ])
+    mean_temp <- mean(TSTmeans)
+    data <- as.data.frame(cbind(TSTmeans, TSmeans))
+    
+    plot(TSTmeans, TSmeans, 
+         main = "Relationship between energy load and temperature", 
+         xlab = "Temperature [F]", 
+         ylab = "Load [xW]", 
+         cex = 0.1,
+         panel.first = grid(nx = NULL, ny = NULL, col = "red", lty = "dotted"))
+   
+  })
+  
+  output$dygraph5 <- renderPlot({
+    d <-0
+    for(j in 1:11){
+      if(input$select6==l[j]){
+        d <-j
+      }
+    }
+    f <-0
+    for(j in 1:20){
+      if(input$select5==a[j]){
+        f <-j
+      }
+    }
+
+    query <- paste("select V", f+1," as value from temp_table", sep="")
+    query2 <- paste("select V", d+1," as value from load_table", sep="")
+    p1 <- sqldf(query)
+    p2 <- sqldf(query2)
+    p1 <- na.locf(p1)
+    p2 <- na.locf(p2)
+    
+    par(mfrow=c(2,2))
+    p <- periodogram(p1)
+    spectrum(p1)
+    
+    pp <- periodogram(p2)
+    spectrum(p2)
+  
+  })
+  
+  output$dygraph6 <- renderPlot({
+    d <-0
+    for(j in 1:11){
+      if(input$select6==l[j]){
+        d <-j
+      }
+    }
+    f <-0
+    for(j in 1:20){
+      if(input$select5==a[j]){
+        f <-j
+      }
+    }
+    
+    query <- paste("select V", f+1," as value from temp_table", sep="")
+    query2 <- paste("select V", d+1," as value from load_table", sep="")
+    p1 <- sqldf(query)
+    p2 <- sqldf(query2)
+    p1 <- na.locf(p1)
+    p2 <- na.locf(p2)
+    par(mfrow=c(1,2))
+    retChirp <- cwt(p1[1:length(p1$value),1], noctave=10, nvoice=12)
+    retChirp2 <- cwt(p2[1:length(p2$value),1], noctave=10, nvoice=12)
+    
+  })
+  
+  output$summ <-  renderPrint({
+    d <-0
+    for(j in 1:11){
+      if(input$select6==l[j]){
+        d <-j
+      }
+    }
+    f <-0
+    for(j in 1:20){
+      if(input$select5==a[j]){
+        f <-j
+      }
+    }
+    query <- paste("select V", f+1," as value from temp_table", sep="")
+    query2 <- paste("select V", d+1," as value from load_table", sep="")
+    p1 <- sqldf(query)
+    p2 <- sqldf(query2)
+    p1 <- na.locf(p1)
+    p2 <- na.locf(p2)
+    
+    p = periodogram(p1)
+    pp = periodogram(p2)
+    
+    dd = data.frame(freq=p$freq, spec=p$spec)
+    order = dd[order(-dd$spec),]
+    top2 = head(order, 9)
+    
+    time = 1/top2$f
+    print(cbind(top2, time))
+    
+    dd2 = data.frame(freq=pp$freq, spec=pp$spec)
+    order2 = dd[order(-dd2$spec),]
+    ttop2 = head(order2, 9)
+    
+    ttime = 1/ttop2$f
+    print(cbind(ttop2, ttime))
+    
+    
+  })
+  
+  
+  getPage<-function() {
+    return(includeHTML("./../src/Ari/TSMarkdown.html"))
+  }
+  output$inc<-renderUI({getPage()})
   
   
 }
