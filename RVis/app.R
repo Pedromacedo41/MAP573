@@ -442,24 +442,18 @@ server <- function(input, output) {
       }
     }
     
-    query <- paste("select datetime,V", d+1," as value from temp_table", sep="")
+    query <- paste("select datetime,V", d+1," as value from load_table", sep="")
     kkk <- sqldf(query)
     
     query <- paste("select datetime,V", f+1," as value from temp_table", sep="")
     ggg <- sqldf(query)
     
-    row.names(TST) <- TST$datetime
-    TST = subset(TST, select = -c(datetime))
     
-    row.names(TS) <- TS$datetime
-    TS = subset(TS, select = -c(datetime))
+    TS_sum <- rowSums(kkk[(1:dim(kkk)[1]), ])
+    TST_mean <- rowMeans(ggg[(1:dim(ggg)[1]), ])
     
-    TSmeans <- rowMeans(TS[1:29414, ])
-    TSTmeans <- rowMeans(TST[1:29414, ])
-    mean_temp <- mean(TSTmeans)
-    data <- as.data.frame(cbind(TSTmeans, TSmeans))
     
-    plot(TSTmeans, TSmeans, 
+    plot(TST_mean, TS_sum, 
          main = "Relationship between energy load and temperature", 
          xlab = "Temperature [F]", 
          ylab = "Load [xW]", 

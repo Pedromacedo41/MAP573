@@ -42,9 +42,10 @@ Because we have so many zones, we might want to simplify our data and only use t
 
 
 ```{r sumData}
+dim(TS)[1]
 
-TS_sum <- rowSums(TS[1:29414, ])
-TST_mean <- rowMeans(TST[1:29414, ])
+TS_sum <- rowSums(TS[(1:dim(TS)[1]), ])
+TST_mean <- rowMeans(TST[(1:dim(TS)[1]), ])
 data <- as.data.frame(cbind(TST_mean, TS_sum))
 ```
 
