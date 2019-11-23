@@ -17,7 +17,7 @@ knitr::opts_knit$set(root.dir = getwd())
 knitr::opts_chunk$set(echo = T)
 ```
 
-## Relationship between temperature and load
+# Relationship between temperature and load
 
 Read in the TS objects.We set the index as the dates and remove the time/date column and the X column. The temperature file has 11 zones and I assume that those 11 zones are the same as the first zones in the load TS.
 
@@ -34,7 +34,7 @@ row.names(TST) <- TST$datetime
 TST = subset(TST, select = -c(X, datetime))
 
 row.names(TS) <- TS$datetime
-TS = subset(TS, select = -c(X, datetime, V11))  #Remove Z10 which is V11 because it behaves strangely
+TS = subset(TS, select = -c(X, datetime, V10))  #Remove Z10 which is V11 because it behaves strangely
 
 ```
 
@@ -100,12 +100,12 @@ data_zoo <- cbind(load_zoo, temperature_zoo)
 load_ts <- ts(TS_sum, start = as.numeric(times[1]), frequency = 24) 
 ```
 
-
-Here we will test 2004 and see how each zone behaves throughout the year. Because the first figure shows that there is a lot of difference in the magintude of load between zones we standardize it and plot it again. The standardized plot is much nicer.
+# One year
+Here we will test 2004 and see how each zone behaves throughout the year. Because the first figure shows that there is a lot of difference in the magintude of load between zones we standardize it and plot it again. The standardized plot is much nicer. There are some white lines in the plt (zone 4) which are outliers in the zone (values close to 0). What to do about this? similar thing was in zone 9 and was removed.
 
 ```{r ssss}
 
-years <- c("2004", "2005", "2005", "2006", "2007", "2008")
+years <- c("2004", "2005", "2006", "2007", "2008")
 year = years[1]
 temp_start <-  paste(c(year, "-01-", "01 01:00:00"), collapse = "")
 temp_end <-  paste(c(year, "-12-", "31 24:00:00"), collapse = "")
@@ -116,14 +116,18 @@ year_zoo_zones <- load_zoo_zones[ystart:yend]
 
 TS_year <- as.matrix(coredata(year_zoo_zones[1:dim(year_zoo_zones)[1],1:dim(year_zoo_zones)[2]]))
 
-p1 <- image(x = 1:dim(year_zoo_zones)[1], 
+
+
+
+par(mfrow=c(1,2))
+image(x = 1:dim(year_zoo_zones)[1], 
       y = 1:dim(year_zoo_zones)[2], 
       z = TS_year, 
       xlab = "The first year [hours]", ylab = "Zones", main = "'Heatmap' of zones for the first year")
 
 
 
-ts_st <- matrix(data=0,nrow=20,ncol=1)
+ts_st <- matrix(data=NA,nrow=20,ncol=1)
 for (i in 1:dim(TS_year)[2]){
   temp <- sd(TS_year[,i])
   ts_st[i] <- temp
@@ -135,16 +139,12 @@ for (i in 1:dim(TS_year)[2]){ #skipta um zone
   }
 }
 
-p2 <- image(x = 1:dim(year_zoo_zones)[1], 
+image(x = 1:dim(year_zoo_zones)[1], 
       y = 1:dim(year_zoo_zones)[2], 
       z = TS_year,
       ylab = "zones",
-      xlab = "The first year [hours]", 
+      xlab = "Hours", 
       main = "Standardized 'Heatmap' of zones for the first year")
-
-
-p1
-p2
 
 ```
 
@@ -152,40 +152,42 @@ p2
 
 
 
-# Smoothing
+# Compare Years
+To compare years, we extract each year out of the data with each measurement sum of all load. We then plot imageplot and lineplot to compare the years. Because during the day, the measurements change more than throughout the months, we try to use smoothening by taking average load over each 24 hours. We then do the same for weeks and months.
 
+I am here, start by making plots beautiful
 ```{r standardized years sum compare} 
 #sum everything and compare years
 
+
 smoothpars <- c(0,24,24*7, 24*30) #0 fyrir klukkustund, 24 fyrir dag, 24*7 fyrir vikur
-years <- c("2004", "2005", "2006", "2007", "2008")
+
 
 size_year = c(0,0,0,0,0)
-for (i in (1:(length(years)-1))){
+for (i in (1:(length(years)))){
   year = years[i]
   temp_start <-  paste(c(year, "-01-", "01 01:00:00"), collapse = "")
   temp_end <-  paste(c(year, "-12-", "31 24:00:00"), collapse = "")
 
-  if (i == 4){yend = length(load_zoo)} else {yend <- which(as.POSIXct(temp_end) == index(load_zoo))-1} #-1 til þess að losna við firsta value á næsta ári
+  if (i == 5){yend = length(load_zoo)} else {yend <- which(as.POSIXct(temp_end) == index(load_zoo))-1} #-1 til þess að losna við firsta value á næsta ári
   ystart <- which(as.POSIXct(temp_start) == index(load_zoo))
   
   size_year[i] <- length(load_zoo[ystart:yend])
 }
-  
 
-
-
-
+counter <- 1
+labels <- c("Hours", "Days", "Weeks", "Months")
+titles <- c("At each hour", "Average load over the day", "Average load over the week", "Average load over the months")
 for (s in smoothpars){
   
   year_zoo <- matrix(data = NA, nrow = 5, ncol = max(size_year))
   
-  for (i in (1:(length(years)-1))){
+  for (i in (1:(length(years)))){
     year = years[i]
     temp_start <-  paste(c(year, "-01-", "01 01:00:00"), collapse = "")
     temp_end <-  paste(c(year, "-12-", "31 24:00:00"), collapse = "")
     as.POSIXct(temp_start)
-    if (i == 4){yend = length(load_zoo)} else {yend <- (which(as.POSIXct(temp_end) == index(load_zoo))-1)} #-1 til þess að losna við firsta value á næsta ári
+    if (i == 5){yend = length(load_zoo)} else {yend <- (which(as.POSIXct(temp_end) == index(load_zoo))-1)} #-1 til þess að losna við firsta value á næsta ári
     ystart <- which(as.POSIXct(temp_start) == index(load_zoo))
     
     temp <-  coredata(load_zoo[ystart:yend])
@@ -227,29 +229,30 @@ year_zoo <- as.data.frame(year_zoo)
 
 
 p2 <- ggplot(data=year_zoo, aes(x=index(year_zoo))) + 
-                geom_line(aes(y=year1), color = "Yellow") + 
-                geom_line(aes(y=year2), color = "Red") + 
-                geom_line(aes(y=year3), color = "Green") + 
-                geom_line(aes(y=year4), color = "Blue") + 
-                geom_line(aes(y=year5), color = "Black") +
-                xlab('Time') +
-                ylab('Load')
+                geom_line(aes(y=year1, color = "2004")) + 
+                geom_line(aes(y=year2, color = "2005")) + 
+                geom_line(aes(y=year3, color = "2006")) + 
+                geom_line(aes(y=year4, color = "2007")) + 
+                geom_line(aes(y=year5, color = "2008")) +
+                scale_colour_manual("", 
+                      breaks = c("2004", "2005", "2006", "2007", "2008"),
+                      values = c("2004"="yellow", "2005"="red", "2006"="green", "2007"="blue", "2008"= "black"))+
+                xlab(labels[counter]) +
+                ylab('Load')+ 
+                labs(title = "Load over the time", subtitle = titles[counter])+
+                scale_fill_discrete(name="Year")
 
 p1
 print(p2)
+counter <- counter + 1
 }
+
 
 ```
 
-
-
-
-Last graph really noisy. Will try to take an average of day and then plot again....
-
+# Differences in steps
 
 ```{r histogramskkkkk}
-
-
 
 
 load.means.diff <- diff(TS_sum)
@@ -308,8 +311,9 @@ p2 <- ggplot(data_zoo, aes(timesNAomit))+
 grid.arrange(p1, p2, nrow = 2)
 ```
 
-# Forecast Library
-## Autocorrelation
+
+# Forecast
+## Lagplot
 
 Here, we investigate how values in the time series are correlated to one another.
 We do this for different amouts of lags to wether the data is seasonal.
@@ -318,71 +322,74 @@ When lags are increased the correlation between the variables decreases untill a
 In the ACF plot this can be more clearly seen.
 
 
-```{r chunk 5, cache = TRUE}
+```{r Lagplot, cache = TRUE}
 library(forecast)
 gglagplot(TS_sum, do.lines = FALSE, set.lags = 1:30, cex=0.1, colour = FALSE)
 ```
 
 
+## Autocorrelations
 
-
-If we go to even more lags the datas 24 hour periods can be seen better.
-
-```{r chunk 4.3}
-library(forecast, echo=FALSE)
+```{r ACF}
+library(forecast)
 p1 <- ggAcf(TS_sum)
 p2 <- ggAcf(TS_sum, lag.max = 24*35)
 grid.arrange(p1, p2, nrow = 2)
 ```
 
-
+The autocorrelation decreases from lag 1 but then around 15, it starts increasing, reacking a peak at 24. This behaviour repeats itself every 24 hours, decreasing a little every time. 
+However, there are some intervals where it increases sligly (see bottom figure). Where the ACF increases slightly is the 6th and the 6th and the 7th lag. 
+From this we have some information that there is a autocorrelation for lags 24, 48,72,... and there is also some autocorrelation increase for lags $$6*24$$ and $$7*24$$, meaning that the same weekdays have are more correlated than different ones.
 
 ## Partial autocorrelation
+To get the direct effect, we performed partial autocorrelation. Here it is easier to see what is going on. The first figure shows how autocorrelation drops, barely correlation around lag 10 but then goes up and is positively correlated for lags 15-16.
+The correlation is however greatest at lag 24 (nagative correlation). This is consistent with what we saw earlier.
 
+In the next figure, the lags are extended to 200. 
+It is clear that the PACF is the greatest at lag 24. However, every 24 lags it decreases up untill lags $$6*24$$ and $$7*24$$ (also onsistent with what we saw earlier).
+
+Extending lags more, weekly correlation decreases.
 
 There seems to be a seasonal period of 24 hours. Also, when lags are increased there seem to be another seasonal period of 7 days.
 Now to partial autocorrelation.
 
-```{r chunk 6}
+```{r PACF}
 p1 <- ggAcf(TS_sum, type = "partial")
 p2 <- ggAcf(TS_sum, type = "partial", lag.max = 24*7)
 
 p3 <- ggAcf(TS_sum, type = "partial", lag.max = 24*7*4)
 
-grid.arrange(p1, p2, p3,  ncol = 2, layout_matrix = rbind(c(1,2), c(3,3)))
+
+
+
+
+grid.arrange(p1, p2, p3, ncol = 2, layout_matrix = rbind(c(1,2), c(3,3)))
 
 ```
-
-
-
 
 
 There is a significant partial autocorrelation on lag 1, 2, 3, 13:17, 24,25, and 26. When the lag is higher, there seems to be partial autocorrelation every 24 hours and every 7 days, confirming a seasonal period of 24 hours as well as a weekly seasonal period.
+HOW TO CHECK FOR MORE SEASONS, YEAR OR MONTHS??
+
+To compare with, we plot the first day, week, and month to see how the timeseries behaves.
+
+```{r TS.compared.w.PACF}
 
 
-
-```{r chunk 7}
-
-p1 <- autoplot(load_zoo[1:24], main="24 hours from baseline")
-p2 <- autoplot(load_zoo[1:24*7], main="week from baseline")
-p3 <- autoplot(load_zoo[1:24*7*4], main="month from baseline")
+p1 <- autoplot(ts(load_ts[1:24]), main="24 hours from baseline")+xlab("Time")+ylab("Load")
+p2 <- autoplot(load_zoo[1:24*7], main="week from baseline")+xlab("Time")+ylab("Load")
+p3 <- autoplot(load_zoo[1:24*7*4], main="month from baseline")+xlab("Time")+ylab("Load")
 
 
 grid.arrange(p1, p2, p3,  ncol = 2, layout_matrix = rbind(c(1,2), c(3,3)))
 ```
 
-First plot:
 
-Second plot: the roughness of the plot is due to the seasonal period of 24 hours. But on this plot we can see that the load is more at the end of the week.
+# Load each month and outliers
 
-Third plot: 
-
-
-
-# Today
 ```{r chunk 8}
 
-N_obs <- 31*24*5
+N_obs <- sum(size_year)
 D <- matrix(data=NA,nrow=N_obs,ncol=12)
 colnames(D) <- c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 
@@ -419,7 +426,7 @@ for (y in 1:5){
     monthData <- coredata(window(load_zoo, start = as.POSIXct(sDay), end = as.POSIXct(eDay)))
     lengthMonth <- length(monthData)
 
-    D[MaxIndex:(MaxIndex+lengthMonth-1),m] <-monthData[1:lengthMonth]
+    D[MaxIndex:(MaxIndex+lengthMonth-1),m] <- monthData[1:lengthMonth]
     
     if (lengthMonth > MaxIndex_month) {MaxIndex_month <- lengthMonth}
   }
@@ -439,6 +446,8 @@ boxplot(D,
 ```
 
 
+# Transformation
+Does not improve our results
 
 ```{r chunk 9}
 
@@ -489,9 +498,6 @@ plot.zoo(TS_sum_transformed)
 TS_sum_backtransformed <- BackTransform(TS_sum_transformed, Lambda)
 plot.zoo(TS_sum_backtransformed)
 
-
-
-#bias adjust then
 
 ```
 
