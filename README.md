@@ -5,6 +5,9 @@
 https://www.kaggle.com/apoorvabhide/energy-consumption-time-series-forecasting-in-r/notebook#Introduction
 https://www.kaggle.com/c/global-energy-forecasting-competition-2012-load-forecasting/dat
 Recency Effect https://www.sciencedirect.com/science/article/pii/S0169207015001557?via%3Dihub
+Weather Station Select: https://www.sciencedirect.com/science/article/pii/S0169207014001319?via%3Dihub
+Hierchical Forecasting: https://www.sciencedirect.com/science/article/pii/S0169207013000757
+
 
 ## About usage and folder structure:
 
