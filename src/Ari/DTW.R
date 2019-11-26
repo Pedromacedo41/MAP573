@@ -5,23 +5,48 @@
 TS <- read.csv("/Users/arijoh/Documents/Skóli/École Polytechnique/Data Analysis and Unsupervised Learning /Project/MAP573/Data/Complete_TS.csv")
 TST <- read.csv("/Users/arijoh/Documents/Skóli/École Polytechnique/Data Analysis and Unsupervised Learning /Project/MAP573/Data/TST.csv")
 
+
 row.names(TST) <- TST$datetime
 TST = subset(TST, select = -c(X, datetime))
 
 row.names(TS) <- TS$datetime
 TS = subset(TS, select = -c(X, datetime, V10))  #Remove Z10 which is V11 because it behaves strangely
 
+colnames(TS) <- c("L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8", "L10", "L11", "L12", "L13", "L14", "L15", "L16", "L17", "L18", "L19", "L20")
+colnames(TST) <- c("T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11")
+
+
+TS_sum <- rowSums(TS[(1:dim(TS)[1]), ])
+TST_mean <- rowMeans(TST[(1:dim(TS)[1]), ])
+data <- as.data.frame(cbind(TST_mean, TS_sum))
+
+plot(TST_mean, TS_sum, 
+     main = "Relationship between energy load and temperature", 
+     xlab = "Temperature [F]", 
+     ylab = "Load [xW]", 
+     cex = 0.1,
+     panel.first = grid(nx = NULL, ny = NULL, col = "red", lty = "dotted"))
+
+
 
 last <- 2000#10000 will try #39408 is the last matching times, the dtw function cannot handle such long vectors
 TS <- TS[1:last,]
 TST <- TST[1:last,]
 
-colnames(TS) <- c("L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8", "L9", "L10", "L11", "L12", "L13", "L14", "L15", "L16", "L17", "L18", "L19")
-colnames(TST) <- c("T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11")
+
 
 
 dim(TS)
 dim(TST)
+
+
+
+
+
+
+
+
+
 
 #Normalize
 
@@ -72,14 +97,22 @@ for(i in 1:dim(TS_standardized)[2]){ #The rows are i
 
 dim(D)
 
-image(x=1:dim(D)[1], y=1:dim(D)[2], (exp(D)), xlab="Load Zones", ylab="Temperature Zones", main = "Distance correlation")
+#image(x=1:dim(D)[1], y=1:dim(D)[2], (exp(D)), xlab="Load Zones", ylab="Temperature Zones", main = "Distance correlation")
 
 library(fields)
 image.plot(x=1:dim(D)[1], y=1:dim(D)[2], (exp(D)), xlab="Load Zones", ylab="Temperature Zones", main = "Distance correlation")
 
 
 
-#library(TSdist) crash
+
+
+
+
+
+
+
+
+#library(TSdist) # crash
 #TSdist::CCorDistance(x,y)
 
 
@@ -92,6 +125,37 @@ image.plot(x=1:dim(D)[1], y=1:dim(D)[2], (exp(D)), xlab="Load Zones", ylab="Temp
 #TST_standardized  <- abs(diff(TST_standardized))
 
 
+
+
+
+TS <- read.csv("/Users/arijoh/Documents/Skóli/École Polytechnique/Data Analysis and Unsupervised Learning /Project/MAP573/Data/Complete_TS.csv")
+TST <- read.csv("/Users/arijoh/Documents/Skóli/École Polytechnique/Data Analysis and Unsupervised Learning /Project/MAP573/Data/TST.csv")
+
+row.names(TST) <- TST$datetime
+TST = subset(TST, select = -c(X, datetime))
+
+row.names(TS) <- TS$datetime
+TS = subset(TS, select = -c(X, datetime, V10))  #Remove Z10 which is V11 because it behaves strangely
+
+colnames(TS) <- c("L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8", "L10", "L11", "L12", "L13", "L14", "L15", "L16", "L17", "L18", "L19", "L20")
+colnames(TST) <- c("T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11")
+
+
+#Zones 13-18 are the most dependent on temperature
+##HERE we try to remove zones that do not seem to be temperature dependent.
+TS = subset(TS, select = c("L13", "L14", "L15", "L16", "L17", "L18"))
+
+
+TS_sum <- rowSums(TS[(1:dim(TS)[1]), ])
+TST_mean <- rowMeans(TST[(1:dim(TS)[1]), ])
+data <- as.data.frame(cbind(TST_mean, TS_sum))
+
+plot(TST_mean, TS_sum, 
+     main = "Relationship between energy load and temperature", 
+     xlab = "Temperature [F]", 
+     ylab = "Load [xW]", 
+     cex = 0.1,
+     panel.first = grid(nx = NULL, ny = NULL, col = "red", lty = "dotted"))
 
 
 
