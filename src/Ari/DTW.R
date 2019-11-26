@@ -1,7 +1,4 @@
 
-
-
-
 TS <- read.csv("/Users/arijoh/Documents/Skóli/École Polytechnique/Data Analysis and Unsupervised Learning /Project/MAP573/Data/Complete_TS.csv")
 TST <- read.csv("/Users/arijoh/Documents/Skóli/École Polytechnique/Data Analysis and Unsupervised Learning /Project/MAP573/Data/TST.csv")
 
@@ -32,21 +29,6 @@ plot(TST_mean, TS_sum,
 last <- 2000#10000 will try #39408 is the last matching times, the dtw function cannot handle such long vectors
 TS <- TS[1:last,]
 TST <- TST[1:last,]
-
-
-
-
-dim(TS)
-dim(TST)
-
-
-
-
-
-
-
-
-
 
 #Normalize
 
@@ -103,15 +85,6 @@ library(fields)
 image.plot(x=1:dim(D)[1], y=1:dim(D)[2], (exp(D)), xlab="Load Zones", ylab="Temperature Zones", main = "Distance correlation")
 
 
-
-
-
-
-
-
-
-
-
 #library(TSdist) # crash
 #TSdist::CCorDistance(x,y)
 
@@ -123,9 +96,6 @@ image.plot(x=1:dim(D)[1], y=1:dim(D)[2], (exp(D)), xlab="Load Zones", ylab="Temp
 
 #TS_standardized <- abs(diff(TS_standardized))
 #TST_standardized  <- abs(diff(TST_standardized))
-
-
-
 
 
 TS <- read.csv("/Users/arijoh/Documents/Skóli/École Polytechnique/Data Analysis and Unsupervised Learning /Project/MAP573/Data/Complete_TS.csv")
@@ -156,6 +126,18 @@ plot(TST_mean, TS_sum,
      ylab = "Load [xW]", 
      cex = 0.1,
      panel.first = grid(nx = NULL, ny = NULL, col = "red", lty = "dotted"))
+
+
+
+
+
+
+
+
+library(xts)
+library(zoo)
+library(TSdist) # crash
+
 
 
 
