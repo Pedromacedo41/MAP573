@@ -52,9 +52,9 @@ correlationPlot <- function(s, last, TS, TST, title){
   TST <- TST[1:last,]
   
   #Normalize
-  temp <- Normalize(TS, TST)
-  TS <- as.matrix(temp[[1]])
-  TST <- as.matrix(temp[[2]])
+  #temp <- Normalize(TS, TST)
+  #TS <- as.matrix(temp[[1]])
+  #TST <- as.matrix(temp[[2]])
   
   C <- correlation(TS, TST)
   colors <- colorpanel(100, "red","white", "blue")
