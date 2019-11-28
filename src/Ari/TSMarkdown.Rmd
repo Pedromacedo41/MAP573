@@ -475,7 +475,7 @@ for (y in 1:5){
 
 #Now boxplot with D
 boxplot(D/1000000,
-        main = "Average energy load over the zones vs months",
+        main = "Total energy demand per hour",
         na.action = NULL,
         xlab = "Months",
         ylab = "Load (GW)",
@@ -483,6 +483,80 @@ boxplot(D/1000000,
         border = "black")
       
 ```
+
+
+
+
+```{r days}
+
+N <- ceiling(length(load_zoo)/24)
+D <- matrix(data = NA, ncol = 24, nrow = N)
+colnames(D) <- as.character(1:24)
+
+
+
+counter <- 1
+for (i in 1:(N)){
+  for (j in 1:24){
+    D[i,j] <- coredata(load_zoo[counter])
+    counter = counter + 1
+  }
+}
+
+
+
+#Now boxplot with D
+boxplot(D/1000000,
+        main = "Total energy demand per hour",
+        na.action = NULL,
+        xlab = "Months",
+        ylab = "Load (GW)",
+        col = "orange",
+        border = "black")
+
+
+```
+
+
+
+```{r years}
+
+N_obs <- max(size_year)+1
+D <- matrix(data=NA,nrow=N_obs,ncol=5)
+colnames(D) <- c("2004", "2005", "2006", "2007", "2008")
+
+
+years <-  c("2004-", "2005-", "2006-", "2007-", "2008-", "2009-")
+
+
+
+for (y in 1:5){ 
+  year <- years[y]
+  
+  sDay <-  paste(c(year, "01-", "01"), collapse = "")
+  eDay  <-  paste(c(years[y+1], "01-", "01"), collapse = "")
+  
+  yearData <- coredata(window(load_zoo, start = as.POSIXct(sDay), end = as.POSIXct(eDay)))
+  lengthYear <- length(yearData)
+
+  D[(1:lengthYear),y] <- yearData[1:lengthYear]
+}
+
+
+#Now boxplot with D
+boxplot(D/1000000,
+        main = "Total energy demand per hour",
+        na.action = NULL,
+        xlab = "Months",
+        ylab = "Load (GW)",
+        col = "orange",
+        border = "black")
+      
+```
+
+
+
+
 
 
 # Transformation
