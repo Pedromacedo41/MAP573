@@ -42,10 +42,8 @@ Because we have so many zones, we might want to simplify our data and only use t
 
 
 ```{r sumData}
-dim(TS)[1]
-
-TS_sum <- rowSums(TS[(1:dim(TS)[1]), ])
-TST_mean <- rowMeans(TST[(1:dim(TS)[1]), ])
+TS_sum <- rowSums(TS[(1:dim(TST)[1]), ])
+TST_mean <- rowMeans(TST[(1:dim(TST)[1]), ])
 data <- as.data.frame(cbind(TST_mean, TS_sum))
 ```
 
@@ -53,12 +51,13 @@ The figure shows some relations shipt between temperature and load but as temper
 
 ```{r plotLoadvsTemp}
 
-plot(TST_mean, TS_sum, 
+plot(TST_mean, TS_sum/1000000, 
      main = "Relationship between energy load and temperature", 
      xlab = "Temperature [F]", 
-     ylab = "Load [xW]", 
+     ylab = "Load [GW]", 
      cex = 0.1,
      panel.first = grid(nx = NULL, ny = NULL, col = "red", lty = "dotted"))
+
 
 ```
 
@@ -255,13 +254,16 @@ counter <- counter + 1
 ```{r histogramskkkkk}
 
 
-load.means.diff <- diff(TS_sum)
+load.means.diff <- diff(TS_sum)/1000000
 
 
 
 d <- coredata(load.means.diff)
 d <- as.data.frame(cbind(1:length(d), d))
-p1 <- ggplot(d,aes(V1, d))+geom_line()+
+colnames(d) <- c("Idx", "Difference")
+
+p1 <- ggplot(d,aes(Idx, Difference))+geom_line()+
+      theme_bw()+
       labs(title = "Difference in load between time steps", xlav="Time", ylab="Difference")
 
 
@@ -269,25 +271,29 @@ p1 <- ggplot(d,aes(V1, d))+geom_line()+
 d <- as.matrix(load.means.diff)
 bw <- 2 * IQR(d) / length(d)^(1/3) #Freedman-Diaconis rule
 d <- as.data.frame(d)
-p2 <- ggplot(d, aes(x = V1)) +
-      labs(title= "Difference between each time step ",
+colnames(d) <- c("Difference")
+
+p2 <- ggplot(d, aes(x = Difference)) +
+      labs(title= "Histogram of the difference between each time step ",
            y="Count", 
-           x = "Difference")+
+           x = "Difference [GW]")+
+      theme_bw()+
       geom_histogram(binwidth = bw) 
 
+mean(as.matrix(d))
+sd(as.matrix(d))
 
-
-
-d <- coredata(TS_sum)
+d <- coredata(TS_sum)/1000000
 bw <- 2 * IQR(d) / length(d)^(1/3) #Freedman-Diaconis rule 
 p3 <- ggplot(, mapping = aes(x = d)) +
       labs(title= "Histogram of load",
            y="Count", 
-           x = "Load")+
+           x = "Load [GW]")+
+      theme_bw()+
       geom_histogram(binwidth = bw)
 
       
-grid.arrange(p1, p2, p3, nrow = 3)
+grid.arrange(p3, p1, p2, nrow = 3)
 ```
 
 
@@ -324,7 +330,7 @@ In the ACF plot this can be more clearly seen.
 
 ```{r Lagplot, cache = TRUE}
 library(forecast)
-gglagplot(TS_sum, do.lines = FALSE, set.lags = 1:30, cex=0.1, colour = FALSE)
+#gglagplot(TS_sum, do.lines = FALSE, set.lags = 1:30, cex=0.1, colour = FALSE)
 ```
 
 
@@ -332,8 +338,8 @@ gglagplot(TS_sum, do.lines = FALSE, set.lags = 1:30, cex=0.1, colour = FALSE)
 
 ```{r ACF}
 library(forecast)
-p1 <- ggAcf(TS_sum)
-p2 <- ggAcf(TS_sum, lag.max = 24*35)
+p1 <- ggAcf(TS_sum)+labs(title="Autocorrelations for lags 48 hours")+theme_bw()
+p2 <- ggAcf(TS_sum, lag.max = 24*35)+labs(title="Autocorrelations for lags 840 hours (35 days)")+theme_bw()
 grid.arrange(p1, p2, nrow = 2)
 ```
 
@@ -354,20 +360,53 @@ There seems to be a seasonal period of 24 hours. Also, when lags are increased t
 Now to partial autocorrelation.
 
 ```{r PACF}
-p1 <- ggAcf(TS_sum, type = "partial")
-p2 <- ggAcf(TS_sum, type = "partial", lag.max = 24*7)
-
-p3 <- ggAcf(TS_sum, type = "partial", lag.max = 24*7*4)
-
-
-
+p1 <- ggAcf(TS_sum, type = "partial")+theme_bw()+labs(title="PACF for 24 hours")
+p2 <- ggAcf(TS_sum, type = "partial", lag.max = 24*7)+theme_bw()+labs(title="PACF for a week")
+p3 <- ggAcf(TS_sum, type = "partial", lag.max = 24*7*4)+theme_bw()+labs(title="PACF for a month")
 
 
 grid.arrange(p1, p2, p3, ncol = 2, layout_matrix = rbind(c(1,2), c(3,3)))
 
+
+
 ```
 
+```{r topPCAF}
 
+#Which PACF are the greatest
+temp <- ggAcf(TS_sum, type = "partial", plot=F, lag.max = 24*7*4)
+temp <- as.data.frame(temp$acf)
+temp$idx  <- 1:nrow(temp)
+
+colnames(temp) <- c("PACF", "IDX")
+signs <- temp[c("IDX", "PACF")]
+
+nosigns <- abs(signs)
+
+maxPACF <- order(nosigns$PACF, decreasing=T)
+maxPACF[1:15] 
+
+
+results <- signs[maxPACF,]
+
+
+
+#Now check for 4 years, years seem to be less autocorrelated than within year
+temp <- ggAcf(TS_sum, type = "partial", plot=F, lag.max = 24*7*4*12*2)
+temp <- as.data.frame(temp$acf)
+temp$idx  <- 1:nrow(temp)
+
+colnames(temp) <- c("PACF", "IDX")
+signs <- temp[c("IDX", "PACF")]
+
+nosigns <- abs(signs)
+
+maxPACF <- order(nosigns$PACF, decreasing=T)
+maxPACF[1:15] 
+
+
+results <- signs[maxPACF,]
+```
 There is a significant partial autocorrelation on lag 1, 2, 3, 13:17, 24,25, and 26. When the lag is higher, there seems to be partial autocorrelation every 24 hours and every 7 days, confirming a seasonal period of 24 hours as well as a weekly seasonal period.
 HOW TO CHECK FOR MORE SEASONS, YEAR OR MONTHS??
 
@@ -435,11 +474,11 @@ for (y in 1:5){
 
 
 #Now boxplot with D
-boxplot(D,
+boxplot(D/1000000,
         main = "Average energy load over the zones vs months",
         na.action = NULL,
         xlab = "Months",
-        ylab = "Energy load",
+        ylab = "Load (GW)",
         col = "orange",
         border = "black")
       
