@@ -44,13 +44,13 @@ for (i in 1:(dim(TST)[2])){
   }
 }
 
-
-colors <- colorpanel(100, "white","grey", "black")
+par(mfrow=c(1,2))
+colors <- colorpanel(100, "white", "grey", "black")
 N<- length(colors)
 breaks <- (seq(0, max(D),  length.out= N+1))
 
 
-par(mfrow=c(1,2))
+
 image.plot(x=1:dim(D)[1], y=1:dim(D)[2], ((D)), col = colors, breaks=breaks, 
            xlab="Zones", ylab="Zones", 
            main = "Correlation of temperature stations")
