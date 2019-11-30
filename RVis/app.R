@@ -1,7 +1,6 @@
 library(shiny)
 library(dygraphs)
 library(data.table)
-library(TSA)
 TS= fread("./../Data/TS.csv", sep=",")
 load_table= data.frame(TS)
 
@@ -9,8 +8,14 @@ load_table= data.frame(TS)
 TST= fread("./../Data/TST.csv", sep=",")
 temp_table= data.frame(TST)
 
-xd= fread("./../Data/Load_prediction.csv", sep=",")
-xd= data.frame(xd)
+xd1= t(fread("./../Data/PredictHyper/bidirectionallstm_predictor_168h_window672_37708_38212.csv", sep=","))
+xd2=t(fread("./../Data/PredictHyper/lstm_predictor_1h_window100_0_39575.csv", sep=","))
+xd3= t(fread("./../Data/PredictHyper/lstm_predictor_24h_window100_32660_32784.csv", sep=","))
+xd4= t(fread("./../Data/PredictHyper/lstm_predictor_168h_window1000_32160_33328.csv", sep=","))
+xd1= data.frame(xd1)
+xd2= data.frame(xd2)
+xd3= data.frame(xd3)
+xd4= data.frame(xd4)
 
 library(xts)          # To make the convertion data-frame / xts format
 library(tidyverse)
@@ -20,18 +25,14 @@ library(sqldf)
 load_table$datetime <- ymd_hms(load_table$datetime)
 temp_table$datetime <- ymd_hms(temp_table$datetime)
 
-predictions= c()
-hm <-seq(as.Date("2008-07-08"), as.Date("2008-07-08")+ as.numeric(length(xd$V1)/24) , by="days")
-for(j in 1:length(hm)){
-  for(i in 1:24){
-    predictions <- rbind(predictions, paste(hm[j], " ", i, ":00:00", sep= ""))
-  }
-}
-predictions <-data.frame("datetime"= ymd_hms(predictions[1:length(xd$V1)]), "value"= as.numeric(xd$V1/1000))
-#don <- xts(x = load_table$V2, order.by = load_table$datetime)
-#zt <- xts(x = load_table[,3], order.by = load_table$datetime)
+predictions1 <- xts(x = as.numeric(xd1$xd1/1000), order.by = load_table$datetime[37709:38212])
+predictions2 <- xts(x = as.numeric(xd2$xd2/1000), order.by = load_table$datetime[1:39576])
+predictions3 <- xts(x = as.numeric(xd3$xd3/1000), order.by = load_table$datetime[32661:32784])
+predictions4 <- xts(x = as.numeric(xd4$xd4/1000), order.by = load_table$datetime[32161:33328])
+
 
 k= list()
+
 a=list()
 for(i in 1:20){
   k <- c(k, paste("Zone", i, " Load"))
@@ -46,10 +47,7 @@ for(i in 1:11){
 
 a=c(k,l)
 
-d= list()
-for(i in 1:20){
-  d <- c(d, paste("Zone", i, " Forecast"))
-}
+d= list("Forecast Bidirectional LSTM 168h window 672", "Forecast LSTM 1h window 100", "Forecast LSTM 24h window 100", "Forecast LSTM 168h window 1000")
 
 Table_period  <- function(tb_init, period) {
   i <-1
@@ -73,43 +71,12 @@ Table_period  <- function(tb_init, period) {
   return(data.frame("datetime"= tb[2:length(tb)], gd))
 }
 
-nff = function(x = NULL, n = NULL, up = 10L, plot = TRUE, add = FALSE, main = NULL, ...){
-  #The direct transformation
-  #The first frequency is DC, the rest are duplicated
-  dff = fft(x)
-  #The time
-  t = seq(from = 1, to = length(x))
-  #Upsampled time
-  nt = seq(from = 1, to = length(x)+1-1/up, by = 1/up)
-  #New spectrum
-  ndff = array(data = 0, dim = c(length(nt), 1L))
-  ndff[1] = dff[1] #Always, it's the DC component
-  if(n != 0){
-    ndff[2:(n+1)] = dff[2:(n+1)] #The positive frequencies always come first
-    #The negative ones are trickier
-    ndff[length(ndff):(length(ndff) - n + 1)] = dff[length(x):(length(x) - n + 1)]
-  }
-  #The inverses
-  indff = fft(ndff/73, inverse = TRUE)
-  idff = fft(dff/73, inverse = TRUE)
-  if(plot){
-    if(!add){
-      plot(x = t, y = x, pch = 16L, xlab = "Time", ylab = "Measurement",
-           main = ifelse(is.null(main), paste(n, "harmonics"), main))
-      lines(y = Mod(idff), x = t, col = adjustcolor(1L, alpha = 0.5))
-    }
-    lines(y = Mod(indff), x = nt, ...)
-  }
-  ret = data.frame(time = nt, y = Mod(indff))
-  return(ret)
-}
-
 
 ui <- navbarPage("Energy Forecast Data Visualisation",
                  tabPanel("Time Series",
                           sidebarPanel(width=3,
-                                       checkboxGroupInput("checkGroup",strong("Time Serie Select"),choices = a,selected = c(a[21], a[1], a[18]), inline = TRUE),
-                                       checkboxGroupInput("checkGroup",strong("Forecast Data"),choices = d,selected = c(), inline = TRUE)
+                                       checkboxGroupInput("checkGroup",strong("Time Serie Select"),choices = a,selected = c(a[1]), inline = TRUE),
+                                       checkboxGroupInput("checkGroup2",strong("Forecast Data"),choices = d,selected = c(d[1]), inline = TRUE)
                           ),
                           mainPanel(
                             tabsetPanel(
@@ -169,13 +136,15 @@ ui <- navbarPage("Energy Forecast Data Visualisation",
                  tabPanel("Fourier Analysis",
                           sidebarPanel(
                             selectInput("select5", strong("Zone"),choices =k,selected = 1),
-                            selectInput("select6", strong("Stations"),choices =l,selected = 1)
+                            selectInput("select6", strong("Stations"),choices =l,selected = 1),
+                            selectInput("select88", strong("Predictions"),choices =d,selected = 2)
                           ),
                           mainPanel(
                             tabsetPanel(
                               tabPanel("Plot", plotOutput("dygraph5")),
-                              tabPanel("Cross Plot", plotOutput("dygraph6")),
-                              tabPanel("Summary", verbatimTextOutput("summ"))
+                              tabPanel("Load Modes", verbatimTextOutput("summ")),
+                              tabPanel("Temp Modes", verbatimTextOutput("summ2")),
+                              tabPanel("Prediction Modes", verbatimTextOutput("summ3"))
                             )
                           )
                  ),
@@ -206,14 +175,19 @@ server <- function(input, output) {
           don <- cbind(don,temp)
         }
       }
-      
     }
+  
+    if(input$checkGroup2==d[1]){ don<- cbind(don,na.locf(predictions1)) }
+    if(input$checkGroup2==d[2]){ don<- cbind(don,predictions2) }
+    if(input$checkGroup2==d[3]){ don<- cbind(don,predictions3) }
+    if(input$checkGroup2==d[4]){ don<- cbind(don,predictions4) }
+    
     dygraph(don) %>%
       dyOptions(drawGrid = TRUE) %>%
       dyRangeSelector() %>%
       dyCrosshair(direction = "vertical") %>%
       dyHighlight(highlightCircleSize = 5, highlightSeriesBackgroundAlpha = 0.2, hideOnMouseOut = FALSE)  %>%
-      dyRoller(rollPeriod = 24)
+      dyRoller(rollPeriod = 1)
   })
   
   
@@ -448,8 +422,8 @@ server <- function(input, output) {
       }
     }
 
-    query <- paste("select V", f+1," as value from temp_table", sep="")
-    query2 <- paste("select V", d+1," as value from load_table", sep="")
+    query <- paste("select V", d+1," as value from temp_table", sep="")
+    query2 <- paste("select V", f+1," as value from load_table", sep="")
     p1 <- sqldf(query)
     p2 <- sqldf(query2)
     p1 <- na.locf(p1)
@@ -464,54 +438,21 @@ server <- function(input, output) {
   
   })
   
-  output$dygraph6 <- renderPlot({
-    d <-0
-    for(j in 1:11){
-      if(input$select6==l[j]){
-        d <-j
-      }
-    }
-    f <-0
-    for(j in 1:20){
-      if(input$select5==a[j]){
-        f <-j
-      }
-    }
-    
-    query <- paste("select V", f+1," as value from temp_table", sep="")
-    query2 <- paste("select V", d+1," as value from load_table", sep="")
-    p1 <- sqldf(query)
-    p2 <- sqldf(query2)
-    p1 <- na.locf(p1)
-    p2 <- na.locf(p2)
-    par(mfrow=c(1,2))
-    retChirp <- cwt(p1[1:length(p1$value),1], noctave=10, nvoice=12)
-    retChirp2 <- cwt(p2[1:length(p2$value),1], noctave=10, nvoice=12)
-    
-  })
   
-  output$summ <-  renderPrint({
+  output$summ2 <-  renderPrint({
     d <-0
     for(j in 1:11){
       if(input$select6==l[j]){
         d <-j
       }
     }
-    f <-0
-    for(j in 1:20){
-      if(input$select5==a[j]){
-        f <-j
-      }
-    }
-    query <- paste("select V", f+1," as value from temp_table", sep="")
-    query2 <- paste("select V", d+1," as value from load_table", sep="")
+  
+    query <- paste("select V", d+1," as value from temp_table", sep="")
+  
     p1 <- sqldf(query)
-    p2 <- sqldf(query2)
     p1 <- na.locf(p1)
-    p2 <- na.locf(p2)
     
     p = periodogram(p1)
-    pp = periodogram(p2)
     
     dd = data.frame(freq=p$freq, spec=p$spec)
     order = dd[order(-dd$spec),]
@@ -519,15 +460,47 @@ server <- function(input, output) {
     
     time = 1/top2$f
     print(cbind(top2, time))
+  })
+  
+  output$summ <-  renderPrint({
+    d <-0
+    for(j in 1:21){
+      if(input$select5==k[j]){
+        d <-j
+      }
+    }
     
-    dd2 = data.frame(freq=pp$freq, spec=pp$spec)
-    order2 = dd[order(-dd2$spec),]
-    ttop2 = head(order2, 9)
+    query <- paste("select V", d+1," as value from load_table", sep="")
     
-    ttime = 1/ttop2$f
-    print(cbind(ttop2, ttime))
+    p1 <- sqldf(query)
+    p1 <- na.locf(p1)
     
+    p = periodogram(p1)
     
+    dd = data.frame(freq=p$freq, spec=p$spec)
+    order = dd[order(-dd$spec),]
+    top2 = head(order, 9)
+    
+    time = 1/top2$f
+    print(cbind(top2, time))
+  })
+  
+  output$summ3 <-  renderPrint({
+    p1 <- c()
+    if(input$select88==d[1]){ p1 <- predictions1 }
+    if(input$select88==d[2]){ p1 <- predictions2 }
+    if(input$select88==d[3]){ p1 <- predictions3 }
+    if(input$select88==d[4]){ p1 <- predictions4 }
+    p1 <- na.locf(p1)
+    
+    p = periodogram(p1)
+    
+    dd = data.frame(freq=p$freq, spec=p$spec)
+    order = dd[order(-dd$spec),]
+    top2 = head(order, 9)
+    
+    time = 1/top2$f
+    print(cbind(top2, time))
   })
   
   
