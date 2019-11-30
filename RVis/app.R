@@ -430,21 +430,7 @@ server <- function(input, output) {
     query2  <- paste("select datetime,V", f+1," as value from temp_table", sep="")
     ggg <- sqldf(query2)
     
-    kkk
-    
-    
-    ''' 
-    TS_sum <- rowSums(kkk[(1:dim(kkk[1]), ])
-    TST_mean <- rowMeans(ggg[(1:dim(ggg)[1]), ])
-    
-    
-    plot(TST_mean, TS_sum, 
-         main = "Relationship between energy load and temperature", 
-         xlab = "Temperature [F]", 
-         ylab = "Load [xW]", 
-         cex = 0.1,
-         panel.first = grid(nx = NULL, ny = NULL, col = "red", lty = "dotted"))
-    '''
+  
    
   })
   
