@@ -1,6 +1,6 @@
 
-TS <- read.csv("/Users/arijoh/Documents/Skóli/École Polytechnique/Data Analysis and Unsupervised Learning /Project/MAP573/Data/Complete_TS.csv")
-TST <- read.csv("/Users/arijoh/Documents/Skóli/École Polytechnique/Data Analysis and Unsupervised Learning /Project/MAP573/Data/TST.csv")
+TS <- read.csv("./../../Data/Complete_TS.csv")
+TST <- read.csv("./../../Data/TST.csv")
 
 
 
