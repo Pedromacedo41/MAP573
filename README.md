@@ -1,5 +1,9 @@
 # MAP573 - Time Series Forecast
 
+## Presentation:
+Presentation: https://docs.google.com/presentation/d/1qFmQMnXmSfjJPaBi75d9R2WJuk4bxjiIsOM6VnXIkyM/edit?usp=sharing
+
+
 ## Useful links:
 
 https://www.kaggle.com/apoorvabhide/energy-consumption-time-series-forecasting-in-r/notebook#Introduction
