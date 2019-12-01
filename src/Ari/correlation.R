@@ -25,7 +25,6 @@ correlation <- function(TS, TST){
   return(D)
 }
 
-
 #temperature data
 temp <- dataLoad()
 TS <- as.matrix(temp[[1]])
