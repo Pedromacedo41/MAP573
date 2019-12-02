@@ -4,7 +4,9 @@ library(data.table)
 library(TSA)
 library(keras)
 library(fields)
+library(forecast)
 library(gplots)
+library(gridExtra)
 
 model <- load_model_hdf5("./../Data/Models/lstm_1h_window100.h5")
 
@@ -208,12 +210,19 @@ ui <- navbarPage("Energy Forecast Data Visualisation",
                           ),
                           mainPanel(
                             tabsetPanel(
-                              tabPanel("plot", plotOutput("dygraph333")),
                               tabPanel("T1", plotOutput("l1")),
                               tabPanel("L1", plotOutput("l2")),
                               tabPanel("L2", plotOutput("l3")),
                               tabPanel("L3", plotOutput("l4")),
-                              tabPanel("L4", plotOutput("l5"))
+                              tabPanel("L4", plotOutput("l5")),
+                              tabPanel("L5", plotOutput("l6")),
+                              tabPanel("L6", plotOutput("l7")),
+                              tabPanel("L7", plotOutput("l8")),
+                              tabPanel("L8", plotOutput("l9")),
+                              tabPanel("L9", plotOutput("l10")),
+                              tabPanel("L10", plotOutput("l11")),
+                              tabPanel("L11", plotOutput("l12"))
+                              
                               
                             )
                           )
@@ -557,6 +566,133 @@ server <- function(input, output) {
     
   })
   
+  output$l5 <- renderPlot({
+    p <- read.csv("./../Data/PredictHyper/ari1.csv", header = F)
+    p = p[!is.na(p)]
+    
+  
+    p1 <- ggAcf(p) + labs(title="Autocorrelation of predicted values")+theme_bw()
+    p2 <- ggAcf(p, type = "partial") + labs(title="Partial autocorrelation of predicted values")+theme_bw()
+    grid.arrange(p1, p2, nrow = 2)
+    
+  })
+  
+  output$l6 <- renderPlot({
+    TS <- read.csv("./../Data/Complete_TS.csv")
+    TST <- read.csv("./../Data/TST.csv")
+    
+    row.names(TST) <- TST$datetime
+    TST = subset(TST, select = -c(X, datetime))
+    
+    row.names(TS) <- TS$datetime
+    TS = subset(TS, select = -c(X, datetime, V10))
+  
+    TS_sum <- rowSums(TS[(1:dim(TST)[1]), ])
+    TST_mean <- rowMeans(TST[(1:dim(TST)[1]), ])
+    data <- as.data.frame(cbind(TST_mean, TS_sum))
+    
+    
+    plot(TST_mean, TS_sum/1000000, 
+         main = "Relationship between energy load and temperature", 
+         xlab = "Temperature [F]", 
+         ylab = "Load [GW]", 
+         cex = 0.1,
+         panel.first = grid(nx = NULL, ny = NULL, col = "red", lty = "dotted"))
+    
+  })
+  
+  output$l7 <- renderPlot({
+    TS <- read.csv("./../Data/Complete_TS.csv")
+    TST <- read.csv("./../Data/TST.csv")
+    
+    row.names(TST) <- TST$datetime
+    TST = subset(TST, select = -c(X, datetime))
+    
+    row.names(TS) <- TS$datetime
+    TS = subset(TS, select = -c(X, datetime, V10))
+    
+    TS_sum <- rowSums(TS[(1:dim(TST)[1]), ])
+    
+    load.means.diff <- diff(TS_sum)
+    
+    
+    d <- coredata(load.means.diff)
+    d <- as.data.frame(cbind(1:length(d), d))
+    p1 <- ggplot(d,aes(V1, d))+geom_line()+
+      labs(title = "Difference in load between time steps", xlav="Time", ylab="Difference")
+    
+    
+    
+    d <- as.matrix(load.means.diff)
+    bw <- 2 * IQR(d) / length(d)^(1/3) #Freedman-Diaconis rule
+    d <- as.data.frame(d)
+    p2 <- ggplot(d, aes(x = V1)) +
+      labs(title= "Difference between each time step ",
+           y="Count", 
+           x = "Difference")+
+      geom_histogram(binwidth = bw) 
+  
+    
+    d <- coredata(TS_sum)
+    bw <- 2 * IQR(d) / length(d)^(1/3) #Freedman-Diaconis rule 
+    p3 <- ggplot(, mapping = aes(x = d)) +
+      labs(title= "Histogram of load",
+           y="Count", 
+           x = "Load")+
+      geom_histogram(binwidth = bw)
+    
+    grid.arrange(p1, p2, p3, nrow = 3)
+    
+  })
+  
+  output$l8 <- renderPlot({
+    TS <- read.csv("./../Data/Complete_TS.csv")
+    TST <- read.csv("./../Data/TST.csv")
+    
+    row.names(TST) <- TST$datetime
+    TST = subset(TST, select = -c(X, datetime))
+    
+    row.names(TS) <- TS$datetime
+    TS = subset(TS, select = -c(X, datetime, V10))
+    
+    TS_sum <- rowSums(TS[(1:dim(TST)[1]), ])
+    gglagplot(TS_sum, do.lines = FALSE, set.lags = 1:30, cex=0.1, colour = FALSE)
+  })
+  
+  output$l9 <- renderPlot({
+    TS <- read.csv("./../Data/Complete_TS.csv")
+    TST <- read.csv("./../Data/TST.csv")
+    
+    row.names(TST) <- TST$datetime
+    TST = subset(TST, select = -c(X, datetime))
+    
+    row.names(TS) <- TS$datetime
+    TS = subset(TS, select = -c(X, datetime, V10))
+    
+    TS_sum <- rowSums(TS[(1:dim(TST)[1]), ])
+    p1 <- ggAcf(TS_sum)
+    p2 <- ggAcf(TS_sum, lag.max = 24*35)
+    grid.arrange(p1, p2, nrow = 2)
+  })
+  
+  output$l10 <- renderPlot({
+    TS <- read.csv("./../Data/Complete_TS.csv")
+    TST <- read.csv("./../Data/TST.csv")
+    
+    row.names(TST) <- TST$datetime
+    TST = subset(TST, select = -c(X, datetime))
+    
+    row.names(TS) <- TS$datetime
+    TS = subset(TS, select = -c(X, datetime, V10))
+    
+    TS_sum <- rowSums(TS[(1:dim(TST)[1]), ])
+    p1 <- ggAcf(TS_sum, type = "partial")
+    p2 <- ggAcf(TS_sum, type = "partial", lag.max = 24*7)
+    p3 <- ggAcf(TS_sum, type = "partial", lag.max = 24*7*4)
+    
+    grid.arrange(p1, p2, p3, ncol = 2, layout_matrix = rbind(c(1,2), c(3,3)))
+  })
+
   
   output$dygraph3 <- renderPlot({
     angle2=input$slider1
@@ -686,30 +822,16 @@ server <- function(input, output) {
     
   })
   
-
+  output$l5 <- renderPlot({
+    #set current directory to code source
+    p <- read.csv("./../Data/PredictHyper/ari1.csv", header = F)
+    p = p[!is.na(p)]
   
-  output$dygraph333 <- renderPlot({
-    n <-0
-    for(j in 1:11){
-      if(input$select3==l[j]){
-        n <-j
-      }
-    }
-    f <-0
-    for(j in 1:20){
-      if(input$select4==a[j]){
-        f <-j
-      }
-    }
+    p1 <- ggAcf(p) + labs(title="Autocorrelation of predicted values")+theme_bw()
+    p2 <- ggAcf(p, type = "partial") + labs(title="Partial autocorrelation of predicted values")+theme_bw()
+    grid.arrange(p1, p2, nrow = 2)
     
-    query1 <- paste("select datetime,V", n+1," as value from load_table", sep="")
-    kkk <- sqldf(query1)
     
-    query2  <- paste("select datetime,V", f+1," as value from temp_table", sep="")
-    ggg <- sqldf(query2)
-    
-  
-   
   })
   
   output$ftemp <- renderPlot({
