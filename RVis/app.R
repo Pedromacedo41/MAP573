@@ -61,17 +61,17 @@ Table_period  <- function(tb_init, period) {
   i <-1
   period
   gd=c()
-  tb=c(tb_init$datetime[1])
+  tb=c(tb_init[1,1])
   while(TRUE){
-    if((i+period)>length(tb_init$datetime)){
-      tb <- c(tb,tb_init$datetime[i])
-      k <- c(tb_init$value[i:(i+length(tb_init$datetime)%%period)])
+    if((i+period)>=length(tb_init[,1])){
+      tb <- c(tb,tb_init[i,1])
+      k <- c(tb_init[i:(i+length(tb_init[,1])%%period),2])
       k <- c(k,rep(NA,times=c(period-length(k))))
       gd <- rbind(gd,k)
       break;
     }else{
-      tb <- c(tb,tb_init$datetime[i])
-      gd <- rbind(gd,tb_init$value[i:(i+period-1)])
+      tb <- c(tb,tb_init[i,1])
+      gd <- rbind(gd,tb_init[i:(i+period-1),2])
       i=i+period
     }
   }
@@ -146,11 +146,6 @@ correlationPlot <- function(s, last, TS, TST, title){
   TS <- TS[(s+1):(last+s),]
   TST <- TST[1:last,]
   
-  #Normalize
-  #temp <- Normalize(TS, TST)
-  #TS <- as.matrix(temp[[1]])
-  #TST <- as.matrix(temp[[2]])
-  
   C <- correlation(TS, TST)
   colors <- colorpanel(100, "red","white", "blue")
   N<- length( colors)
@@ -169,8 +164,9 @@ ui <- navbarPage("Energy Forecast Data Visualisation",
                                        checkboxGroupInput("checkGroup",strong("Time Serie Select"),choices = a,selected = c(a[1]), inline = TRUE),
                                        checkboxGroupInput("checkGroup2",strong("Forecast Data"),choices = d,selected = c(d[2]), inline = TRUE),
                                        selectInput("selectt", strong("Make Forecast"),choices =d,selected = 2),
-                                       selectInput("selectt2", h6("Zone"), choices =k,selected = 1),
-                                       checkboxInput("checkbo", "Blind Forecast", value = FALSE),
+                                       selectInput("selectg", strong("Zone"),choices =k,selected = 1),
+                                       h6("Obs: Models trained for zone 1"),
+                                       checkboxInput("checkbo", "Blind Forecast (Slow)", value = FALSE),
                                        actionButton("action", "Generate Data")
                                        
                           ),
@@ -203,20 +199,32 @@ ui <- navbarPage("Energy Forecast Data Visualisation",
                             )
                           )
                  ),
-                 tabPanel("Correlations",
+                 tabPanel("TS Stats",
                           sidebarPanel(
                             selectInput("select3", strong("Zone"),choices =k,selected = 1),
                             selectInput("select4", strong("Stations"),choices =l,selected = 1)
                           ),
                           mainPanel(
                             tabsetPanel(
-                              tabPanel("T1", plotOutput("l1")),
-                              tabPanel("L1", plotOutput("l2")),
-                              tabPanel("L2", plotOutput("l3")),
+                              tabPanel("Correlation Load x Temp", plotOutput("lt")),
+                              tabPanel("Load Stats", plotOutput("lstats")),
+                              tabPanel("Temp Stats", plotOutput("tstats")),
+                              tabPanel("ACF Load", plotOutput("acfl")),
+                              tabPanel("ACF Temp", plotOutput("acft")),
+                              tabPanel("PACF Load", plotOutput("pacfl")),
+                              tabPanel("PACF Temp", plotOutput("pacft"))
+                              
+                            )
+                          )
+                 ),
+                 tabPanel("Overall Stats",
+                          mainPanel(
+                            tabsetPanel(
+                              tabPanel("Correlations", plotOutput("l3")),
+                              tabPanel("Correlations with lag", plotOutput("l2")),
                               tabPanel("L3", plotOutput("l4")),
                               tabPanel("L4", plotOutput("l5")),
                               tabPanel("L5", plotOutput("l6")),
-                              tabPanel("L6", plotOutput("l7")),
                               tabPanel("L7", plotOutput("l8")),
                               tabPanel("L8", plotOutput("l9")),
                               tabPanel("L9", plotOutput("l10")),
@@ -244,7 +252,7 @@ ui <- navbarPage("Energy Forecast Data Visualisation",
                             )
                           )
                  ),
-                 tabPanel("Statistical Analysis",
+                 tabPanel("Statistical Analysis- Short Report",
                           mainPanel(
                             htmlOutput("inc")
                           )
@@ -291,11 +299,11 @@ server <- function(input, output) {
   
   observeEvent(input$action, {
     n <-0
-    for(j in 1:20){
-      if(input$selectt2==a[j]){
+    for(j in 1:21){
+      if(input$selectg==a[j]){
         n <-j
       }
-    }    
+    }
     query <- paste("select datetime,V", n+1," as value from load_table", sep="")
     ggg <- sqldf(query)
     J <- as.Date(input$dygraph_date_window[[1]])
@@ -601,49 +609,7 @@ server <- function(input, output) {
     
   })
   
-  output$l7 <- renderPlot({
-    TS <- read.csv("./../Data/Complete_TS.csv")
-    TST <- read.csv("./../Data/TST.csv")
-    
-    row.names(TST) <- TST$datetime
-    TST = subset(TST, select = -c(X, datetime))
-    
-    row.names(TS) <- TS$datetime
-    TS = subset(TS, select = -c(X, datetime, V10))
-    
-    TS_sum <- rowSums(TS[(1:dim(TST)[1]), ])
-    
-    load.means.diff <- diff(TS_sum)
-    
-    
-    d <- coredata(load.means.diff)
-    d <- as.data.frame(cbind(1:length(d), d))
-    p1 <- ggplot(d,aes(V1, d))+geom_line()+
-      labs(title = "Difference in load between time steps", xlav="Time", ylab="Difference")
-    
-    
-    
-    d <- as.matrix(load.means.diff)
-    bw <- 2 * IQR(d) / length(d)^(1/3) #Freedman-Diaconis rule
-    d <- as.data.frame(d)
-    p2 <- ggplot(d, aes(x = V1)) +
-      labs(title= "Difference between each time step ",
-           y="Count", 
-           x = "Difference")+
-      geom_histogram(binwidth = bw) 
-  
-    
-    d <- coredata(TS_sum)
-    bw <- 2 * IQR(d) / length(d)^(1/3) #Freedman-Diaconis rule 
-    p3 <- ggplot(, mapping = aes(x = d)) +
-      labs(title= "Histogram of load",
-           y="Count", 
-           x = "Load")+
-      geom_histogram(binwidth = bw)
-    
-    grid.arrange(p1, p2, p3, nrow = 3)
-    
-  })
+
   
   output$l8 <- renderPlot({
     TS <- read.csv("./../Data/Complete_TS.csv")
@@ -754,6 +720,36 @@ server <- function(input, output) {
     xy1 <- trans3d(x_axis[length(x_axis)]+0.3, y_axis[length(y_axis)], z_axis- min(Z), pm)
     lines(trans3d(x_axis[length(x_axis)], y_axis[length(y_axis)], z_axis- min(Z), pm))
     segments(xy0$x,xy0$y,xy1$x,xy1$y)
+    
+    
+    if(input$checkbox2){
+      dn <- c()
+      l <- c()
+      if(input$ggselect==d[1]){ dn<- predictions1 ; l <- load_table$datetime[37709:38212]}
+      if(input$ggselect==d[2]){ dn<- predictions2 ; l <- load_table$datetime[1:39576]}
+      if(input$ggselect==d[3]){ dn<- predictions3 ; l <- load_table$datetime[32661:32784]}
+      if(input$ggselect==d[4]){ dn<- predictions4 ; l <-  load_table$datetime[32161:33328]}
+      
+      ff <- Table_period(data.frame("datetime"= kkk[,1] , "value"= dn[,1]),period)
+      ff <- na.omit(ff)
+      ff <- xts(x = ff[,2:(1+period)]/1000, order.by = ff$datetime)
+      k= min(ff)
+      Z["/2008-07-07",] <- NA
+      D <- as.xts(t(apply(ff,1,function(x) spline(as.vector(coredata(x)), n=1*length(x))$y)))
+      gh <- merge(Z,D, join= "left")
+      Z<-gh[,(period+1):(2*period)]
+      cnames <- colnames(Z)
+      par(mar=c(3,1,1,1))
+      par(new=TRUE)
+      pm2<-persp(z=Z,
+                 x=(1:NROW(Z))/length(time.axis),
+                 y=(1:NCOL(Z))/1,
+                 shade=.3, ltheta=20,
+                 r=200,
+                 theta=angle2,
+                 col=rep(rep(yred2(NCOL(Z)/1)),each=(NROW(Z)-1)),
+                 scale=input$checkboxx, border=NA,box=FALSE)
+    }
     
     
   })

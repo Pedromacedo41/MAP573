@@ -71,3 +71,34 @@ p2 <- ggAcf(p, type = "partial") + labs(title="Partial autocorrelation of predic
 grid.arrange(p1, p2, nrow = 2)
 
 
+
+
+model <- load_model_hdf5("./Data/Models/lstm_1h_window100.h5")
+
+
+TS <- read.csv("./Data/Complete_TS.csv")
+TST <- read.csv("./Data/TST.csv")
+
+View(TS)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
