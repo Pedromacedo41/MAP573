@@ -34,7 +34,7 @@ library(ggplot2)
 ggplot(C, aes(x=Lag, y=Correlation)) +
       theme_bw() + 
       geom_point() +
-      labs(title="Correlation betw. temperature and load")
+      labs(title="Correlation between temperature and load")
 
 
 
