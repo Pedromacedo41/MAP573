@@ -8,18 +8,22 @@ library(forecast)
 library(gplots)
 library(gridExtra)
 
-model <- load_model_hdf5("./../Data/Models/lstm_1h_window100.h5")
+model1 <- load_model_hdf5("./Data/Models/lstm_672_168.h5")
+model2 <- load_model_hdf5("./Data/Models/lstm_100_1.h5")
+model3 <- load_model_hdf5("./Data/Models/lstm_100_24.h5")
+model4 <- load_model_hdf5("./Data/Models/lstm_1000_168.h5")
 
-TS= fread("./../Data/Complete_TS.csv", sep=",")
+
+TS= fread("./Data/Complete_TS.csv", sep=",")
 load_table= data.frame(TS)
 
-TST= fread("./../Data/TST.csv", sep=",")
+TST= fread("./Data/TST.csv", sep=",")
 temp_table= data.frame(TST)
 
-xd1= t(fread("./../Data/PredictHyper/bidirectionallstm_predictor_168h_window672_37708_38212.csv", sep=","))
-xd2=t(fread("./../Data/PredictHyper/lstm_predictor_1h_window100_0_39575.csv", sep=","))
-xd3= t(fread("./../Data/PredictHyper/lstm_predictor_24h_window100_32660_32784.csv", sep=","))
-xd4= t(fread("./../Data/PredictHyper/lstm_predictor_168h_window1000_32160_33328.csv", sep=","))
+xd1= t(fread("./Data/PredictHyper/bidirectionallstm_predictor_168h_window672_37708_38212.csv", sep=","))
+xd2=t(fread("./Data/PredictHyper/lstm_predictor_1h_window100_0_39575.csv", sep=","))
+xd3= t(fread("./Data/PredictHyper/lstm_predictor_24h_window100_32660_32784.csv", sep=","))
+xd4= t(fread("./Data/PredictHyper/lstm_predictor_168h_window1000_32160_33328.csv", sep=","))
 xd1= data.frame(xd1)
 xd2= data.frame(xd2)
 xd3= data.frame(xd3)
@@ -92,12 +96,13 @@ build_matrix <- function(tseries, overall_timesteps) {
 }
 
 dataLoad <- function(){
-  TS <- read.csv("./../Data/Complete_TS.csv")
-  TST <- read.csv("./../Data/TST.csv")
+  TS <- read.csv("./Data/Complete_TS.csv")
+  TST <- read.csv("./Data/TST.csv")
   row.names(TST) <- TST$datetime
-  TST = subset(TST, select = -c(X, datetime))
   row.names(TS) <- TS$datetime
-  TS = subset(TS, select = -c(X, datetime, V10))  #Remove Z10 which is V11 because it behaves strangely
+  TST = TST[,2:length(TST)]
+  TS = TS[,2:length(TS)]
+  TS = subset(TS, select = -c(V10))  #Remove Z10 which is V11 because it behaves strangely
   colnames(TS) <- c("L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8", "L10", "L11", "L12", "L13", "L14", "L15", "L16", "L17", "L18", "L19", "L20")
   colnames(TST) <- c("T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11")
   return(list(TS, TST))
@@ -163,10 +168,10 @@ ui <- navbarPage("Energy Forecast Data Visualisation",
                           sidebarPanel(width=3,
                                        checkboxGroupInput("checkGroup",strong("Time Serie Select"),choices = a,selected = c(a[1]), inline = TRUE),
                                        checkboxGroupInput("checkGroup2",strong("Forecast Data"),choices = d,selected = c(d[2]), inline = TRUE),
-                                       selectInput("selectt", strong("Make Forecast"),choices =d,selected = 2),
+                                       selectInput("selectt", strong("Make Forecast"),choices =c(d, "Naive Predictor"),selected = 2),
                                        selectInput("selectg", strong("Zone"),choices =k,selected = 1),
                                        h6("Obs: Models trained for zone 1"),
-                                       checkboxInput("checkbo", "Blind Forecast (Slow)", value = FALSE),
+                                       checkboxInput("checkbo", "Blind Forecast (Only for LSTM predicting 1h ahead. Slow option)", value = FALSE),
                                        actionButton("action", "Generate Data")
                                        
                           ),
@@ -184,12 +189,11 @@ ui <- navbarPage("Energy Forecast Data Visualisation",
                             selectInput("selecto", strong("Zone"),choices =k,selected = 1),
                             selectInput("sselect2", strong("Stations"),choices =l,selected = 1),
                             textInput("text", h3("Periodicity"), value = "24"),
-                            checkboxInput("checkboxx", "Normalize", value = FALSE),
                             sliderInput("slider1", h6("Slider 1, Load Data"),
                                         min = 0, max = 90, value = 50),
                             sliderInput("sslider11", h6("Slider 2, Temp Data"),
                                         min = 0, max = 90, value = 50),
-                            selectInput("ggselect", strong("Forecast Data"),choices =d,selected = 2),
+                            selectInput("ggselect", strong("Forecast Data"),choices =c(d,"New Data"),selected = 2),
                             checkboxInput("checkbox2", "Include Forecast Data", value = FALSE)
                           ),
                           mainPanel(
@@ -201,19 +205,19 @@ ui <- navbarPage("Energy Forecast Data Visualisation",
                  ),
                  tabPanel("TS Stats",
                           sidebarPanel(
-                            selectInput("select3", strong("Zone"),choices =k,selected = 1),
-                            selectInput("select4", strong("Stations"),choices =l,selected = 1)
+                            selectInput("selec1", strong("Zone"),choices =k,selected = 1),
+                            selectInput("selec2", strong("Stations"),choices =l,selected = 1),
+                            selectInput("selec", strong("Predictions"),choices =d,selected = 2)
                           ),
                           mainPanel(
                             tabsetPanel(
-                              tabPanel("Correlation Load x Temp", plotOutput("lt")),
-                              tabPanel("Load Stats", plotOutput("lstats")),
-                              tabPanel("Temp Stats", plotOutput("tstats")),
+                              tabPanel("Correlation Load x Temp", plotOutput("l6")),
                               tabPanel("ACF Load", plotOutput("acfl")),
                               tabPanel("ACF Temp", plotOutput("acft")),
+                              tabPanel("ACF Pred", plotOutput("acfp")),
                               tabPanel("PACF Load", plotOutput("pacfl")),
-                              tabPanel("PACF Temp", plotOutput("pacft"))
-                              
+                              tabPanel("PACF Temp", plotOutput("pacft")),
+                              tabPanel("PACF Load", plotOutput("pacfp"))
                             )
                           )
                  ),
@@ -221,17 +225,7 @@ ui <- navbarPage("Energy Forecast Data Visualisation",
                           mainPanel(
                             tabsetPanel(
                               tabPanel("Correlations", plotOutput("l3")),
-                              tabPanel("Correlations with lag", plotOutput("l2")),
-                              tabPanel("L3", plotOutput("l4")),
-                              tabPanel("L4", plotOutput("l5")),
-                              tabPanel("L5", plotOutput("l6")),
-                              tabPanel("L7", plotOutput("l8")),
-                              tabPanel("L8", plotOutput("l9")),
-                              tabPanel("L9", plotOutput("l10")),
-                              tabPanel("L10", plotOutput("l11")),
-                              tabPanel("L11", plotOutput("l12"))
-                              
-                              
+                              tabPanel("Correlations with lag", plotOutput("l2"))
                             )
                           )
                  ),
@@ -264,16 +258,16 @@ server <- function(input, output) {
   output$dygraph <- renderDygraph({
     don <- pred$data
     for(i in (input$checkGroup)){
-      for(j in 1:20){
+      for(j in 1:21){
         if(i==a[j]){
           #print(a[j])
           #print(j)
-          temp  <- xts(x = load_table[,j+2], order.by = load_table$datetime)
+          temp  <- xts(x = load_table[,j+1], order.by = load_table$datetime)
           names(temp)<- a[j]
           don <- cbind(don,temp)
         }
       }
-      for(j in 21:31){
+      for(j in 22:33){
         if(i==a[j]){
           temp  <- xts(x = temp_table[,j-20+2], order.by = temp_table$datetime)
           names(temp)<- a[j]
@@ -311,31 +305,72 @@ server <- function(input, output) {
     table <- as.Date(ggg$datetime)
     a1 <- which(table==J)[1]
     a2 <- which(table==J2)[1]
-    window <- 100
     
-    if(input$checkbo){
+    
+    if(input$selectt==d[2]){
+      window <- 100
+      if(input$checkbo){
+        h <-as.numeric(ggg[a1:(a1+window-1),2])
+        g <- (h-min(h))/(max(h)-min(h))
+        as <-c()
+        for(i in 1:(a2-a1)){
+          test_matrix <- build_matrix(g, window)
+          data <- model2  %>% predict(reshape_X_3d(test_matrix))
+          as <- c(as,data[1,1])
+          g[1: (length(g)-1)] <- g[2:length(g)]
+          g[length(g)] =data[1,1]
+        }
+        data <- (as*(max(h)-min(h))+min((h)))
+        blind <- xts(x = as.numeric(data), order.by = load_table$datetime[(a1+window-1):(a2+window-2)])
+        pred$data <- blind
+      }else{
+        h <-as.numeric(ggg[a1:a2,2])
+        g <- (h-min(h))/(max(h)-min(h))
+        test_matrix <- build_matrix(g, window)
+        data <- model2  %>% predict(reshape_X_3d(test_matrix))
+        data <- data[,1]*(max(h)-min(h))+min(h)
+        fore<- xts(x = as.numeric(data), order.by = load_table$datetime[(a1+window-1):a2])
+        pred$data <- fore
+      }
+    }
+    
+    if(input$selectt==d[3]){
+      window <- 100
       h <-as.numeric(ggg[a1:(a1+window-1),2])
       g <- (h-min(h))/(max(h)-min(h))
-      as <-c()
-      for(i in 1:(a2-a1)){
-        test_matrix <- build_matrix(g, window)
-        data <- model  %>% predict(reshape_X_3d(test_matrix))
-        as <- c(as,data[1,1])
-        g[1: (length(wi)-1)] <- g[2:length(g)]
-        g[length(g)] =data[1,1]
-      }
-      data <- (as*(max(h)-min(h))+min((h)))
-      blind <- xts(x = as.numeric(data), order.by = load_table$datetime[(a1+window-1):(a2+window-2)])
-      pred$data <- blind
-    }else{
-      h <-as.numeric(ggg[a1:a2,2])
-      g <- (h-min(h))/(max(h)-min(h))
       test_matrix <- build_matrix(g, window)
-      data <- model  %>% predict(reshape_X_3d(test_matrix))
-      data <- data[,1]*(max(h)-min(h))+min(h)
-      fore<- xts(x = as.numeric(data), order.by = load_table$datetime[(a1+window-1):a2])
+      data <- model3  %>% predict(reshape_X_3d(test_matrix))
+      data <- t(data)*(max(h)-min(h))+min(h)
+      fore<- xts(x = as.numeric(data), order.by = load_table$datetime[(a1+window):(a1+23+window)])
       pred$data <- fore
     }
+    if(input$selectt==d[4]){
+      window <- 1000
+      h <-as.numeric(ggg[a1:(a1+window-1),2])
+      g <- (h-min(h))/(max(h)-min(h))
+      test_matrix <- build_matrix(g, window)
+      data <- model4  %>% predict(reshape_X_3d(test_matrix))
+      data <- t(data)*(max(h)-min(h))+min(h)
+      fore<- xts(x = as.numeric(data), order.by = load_table$datetime[(a1+window):(a1+167+window)])
+      pred$data <- fore
+    }
+    if(input$selectt==d[1]){
+      window <- 672
+      h <-as.numeric(ggg[a1:(a1+window-1),2])
+      g <- (h-min(h))/(max(h)-min(h))
+      test_matrix <- build_matrix(g, window)
+      data <- model4  %>% predict(reshape_X_3d(test_matrix))
+      data <- t(data)*(max(h)-min(h))+min(h)
+      fore<- xts(x = as.numeric(data), order.by = load_table$datetime[(a1+window):(a1+167+window)])
+      pred$data <- fore
+    }
+    if(input$selectt=="Naive Predictor"){
+      h <- cbind(c(ggg[1,2]), t(c(ggg[,2])))
+      h <- t(h)
+      fore<- xts(x = as.numeric(h[a1:a2]), order.by = load_table$datetime[a1:a2])
+      pred$data <- fore
+    }
+    
   })
   
   
@@ -371,35 +406,82 @@ server <- function(input, output) {
   })
   
   output$l1 <- renderPlot({
-    TS <- read.csv("./../Data/Complete_TS.csv")
-    TST <- read.csv("./../Data/TST.csv")
+    n <-0
+    for(j in 1:21){
+      if(input$selec1==a[j]){
+        n <-j
+      }
+    }
+    query <- paste("select V", n+1," as value from load_table", sep="")
+    ggg <- sqldf(query)
     
-    row.names(TST) <- TST$datetime
-    TST = subset(TST, select = -c(X, datetime))
+    n <-0
+    for(j in 1:11){
+      if(input$selec2==l[j]){
+        n <-j
+      }
+    }
+    query <- paste("select V", n+1," as value from temp_table", sep="")
+    kkk <- sqldf(query)
+    data <- as.data.frame(cbind(kkk, ggg$value[1:length(kkk$value)]))
     
-    row.names(TS) <- TS$datetime
-    TS = subset(TS, select = -c(X, datetime))
+    library(ggplot2)
     
-    
-    TSmeans <- rowMeans(TS[1:29414, ])
-    TSTmeans <- rowMeans(TST[1:29414, ])
-    mean_temp <- mean(TSTmeans)
-    data <- as.data.frame(cbind(TSTmeans, TSmeans))
-    
-    library(zoo)
-    library(xts)
     
     times <- as.POSIXct(row.names(data), format = "%Y-%m-%d %H:%M:")
-    timesNAomit <- na.omit(times) 
-    load.means.zoo <- zoo(
-      x         = data$TSmeans,
+    timesNAomit <- na.omit(times) #for NA values we omit 
+    
+    load_zoo_zones <- zoo( # all zones
+      x         = TS,
       order.by  = timesNAomit,
       frequency = 24
     )
     
-    N_obs <- 31*24*5
+    load_zoo <- zoo( #sum of the zones
+      x         = data$TS_sum,
+      order.by  = timesNAomit,
+      frequency = 24
+    )
+    
+    temperature_zoo <- zoo(
+      x         = data$TST_mean,
+      order.by  = timesNAomit,
+      frequency = 24
+    )
+    
+    data_zoo <- cbind(load_zoo, temperature_zoo)
+    
+    years <- c("2004", "2005", "2006", "2007", "2008")
+    year = years[1]
+    temp_start <-  paste(c(year, "-01-", "01 01:00:00"), collapse = "")
+    temp_end <-  paste(c(year, "-12-", "31 24:00:00"), collapse = "")
+    as.POSIXct(temp_start)
+    
+    ystart <- which(as.POSIXct(temp_start) == index(load_zoo_zones))
+    yend <- which(as.POSIXct(temp_end) == index(load_zoo_zones))-1 
+    year_zoo_zones <- load_zoo_zones[ystart:yend]
+    
+    TS_year <- as.matrix(coredata(year_zoo_zones[1:dim(year_zoo_zones)[1],1:dim(year_zoo_zones)[2]]))
+    
+    
+    
+    
+    size_year = c(0,0,0,0,0)
+    for (i in (1:(length(years)))){
+      year = years[i]
+      temp_start <-  paste(c(year, "-01-", "01 01:00:00"), collapse = "")
+      temp_end <-  paste(c(year, "-12-", "31 24:00:00"), collapse = "")
+      
+      if (i == 5){yend = length(load_zoo)} else {yend <- which(as.POSIXct(temp_end) == index(load_zoo))-1} 
+      ystart <- which(as.POSIXct(temp_start) == index(load_zoo))
+      
+      size_year[i] <- length(load_zoo[ystart:yend])
+    }
+    
+    N_obs <- sum(size_year)
     D <- matrix(data=NA,nrow=N_obs,ncol=12)
     colnames(D) <- c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+    
     
     
     years = c("2004-", "2005-", "2006-", "2007-", "2008-", "2009-") 
@@ -430,18 +512,16 @@ server <- function(input, output) {
         sDay <- temp_start
         eDay <-temp_end
         
-        monthData <- coredata(window(load.means.zoo, start = as.POSIXct(sDay), end = as.POSIXct(eDay)))
+        monthData <- coredata(window(load_zoo, start = as.POSIXct(sDay), end = as.POSIXct(eDay)))
         lengthMonth <- length(monthData)
         
-        D[MaxIndex:(MaxIndex+lengthMonth-1),m] <-monthData[1:lengthMonth]
+        D[MaxIndex:(MaxIndex+lengthMonth-1),m] <- monthData[1:lengthMonth]
         
         if (lengthMonth > MaxIndex_month) {MaxIndex_month <- lengthMonth}
       }
       MaxIndex <- MaxIndex_month + MaxIndex
     }
     
-    
-    #Now boxplot with D
     boxplot(D,
             main = "Average energy load over the zones vs months",
             na.action = NULL,
@@ -450,16 +530,6 @@ server <- function(input, output) {
             col = "orange",
             border = "black")
     
-    
-    library(Rfast)
-    mins <- colMins(D)
-    maxs <- colMaxs(D)
-    minmaxData <- cbind(mins,maxs)
-    minmaxData
-    row.names(minmaxData) <- colnames(D)
-    barplot(t(minmaxData), col=c("Blue","Red"), legend = c("Min load", "Max load"),
-            main = "Min-max load per month",
-            ylab = "Energy load")
     
   })
   
@@ -536,71 +606,27 @@ server <- function(input, output) {
     
   })
   
-  output$l4 <- renderPlot({
-    TS <- read.csv("./../Data/Complete_TS.csv")
-    TST <- read.csv("./../Data/TST.csv")
-    
-    TST = subset(TST, select = -c(X, datetime))
-    TS = subset(TS, select = -c(X, datetime, V10))  #Remove Z10 which is V11 because it behaves strangely
-    
-    TS_sum <- rowSums(TS[(1:dim(TS)[1]), ])
-    TST_mean <- rowMeans(TST[(1:dim(TS)[1]), ])
-    
-    n <- 15000
-    TST_mean <- as.matrix(TST_mean[1:n])
-    TS_sum <- as.matrix(TS_sum[1:n])
-    
-    
-    counter <- 1
-    Imax <- 24*2
-    C <- matrix(data=NA, nrow = Imax+1, ncol = 2)
-    for (i in (0:(length(C)-1))){
-      
-      TS_sum_lagged <- as.matrix(TS_sum[(i+1):length(TS_sum)])
-      TST_mean_lagged <- as.matrix(TST_mean[1:(length(TST_mean)-i)])
-      
-      C[counter,1] <- i
-      C[counter,2] <- cor(TST_mean_lagged, TS_sum_lagged)
-      counter = counter + 1
-    }
-    
-    C <- as.data.frame(C)
-    colnames(C) <- c("Lag", "Correlation")
-    library(ggplot2)
-    ggplot(C, aes(x=Lag, y=Correlation)) +
-      theme_bw() + 
-      geom_point() +
-      labs(title="Correlation betw. temperature and load")
-    
-  })
-  
-  output$l5 <- renderPlot({
-    p <- read.csv("./../Data/PredictHyper/ari1.csv", header = F)
-    p = p[!is.na(p)]
-    
-  
-    p1 <- ggAcf(p) + labs(title="Autocorrelation of predicted values")+theme_bw()
-    p2 <- ggAcf(p, type = "partial") + labs(title="Partial autocorrelation of predicted values")+theme_bw()
-    grid.arrange(p1, p2, nrow = 2)
-    
-  })
   
   output$l6 <- renderPlot({
-    TS <- read.csv("./../Data/Complete_TS.csv")
-    TST <- read.csv("./../Data/TST.csv")
+    n <-0
+    for(j in 1:21){
+      if(input$selec1==a[j]){
+        n <-j
+      }
+    }
+    query <- paste("select V", n+1," as value from load_table", sep="")
+    load <- sqldf(query)
     
-    row.names(TST) <- TST$datetime
-    TST = subset(TST, select = -c(X, datetime))
-    
-    row.names(TS) <- TS$datetime
-    TS = subset(TS, select = -c(X, datetime, V10))
-  
-    TS_sum <- rowSums(TS[(1:dim(TST)[1]), ])
-    TST_mean <- rowMeans(TST[(1:dim(TST)[1]), ])
-    data <- as.data.frame(cbind(TST_mean, TS_sum))
-    
-    
-    plot(TST_mean, TS_sum/1000000, 
+    n <-0
+    for(j in 1:11){
+      if(input$selec2==l[j]){
+        n <-j
+      }
+    }
+    query <- paste("select V", n+1," as value from temp_table", sep="")
+    temp <- sqldf(query)
+    load <- load$value[1:length(temp$value)]
+    plot(as.numeric(unlist(temp)), as.numeric(unlist(load)), 
          main = "Relationship between energy load and temperature", 
          xlab = "Temperature [F]", 
          ylab = "Load [GW]", 
@@ -611,50 +637,94 @@ server <- function(input, output) {
   
 
   
-  output$l8 <- renderPlot({
-    TS <- read.csv("./../Data/Complete_TS.csv")
-    TST <- read.csv("./../Data/TST.csv")
+  output$acfl <- renderPlot({
+    n <-0
+    for(j in 1:21){
+      if(input$selec1==a[j]){
+        n <-j
+      }
+    }
+    query <- paste("select V", n+1," as value from load_table", sep="")
+    load <- sqldf(query)
     
-    row.names(TST) <- TST$datetime
-    TST = subset(TST, select = -c(X, datetime))
-    
-    row.names(TS) <- TS$datetime
-    TS = subset(TS, select = -c(X, datetime, V10))
-    
-    TS_sum <- rowSums(TS[(1:dim(TST)[1]), ])
-    gglagplot(TS_sum, do.lines = FALSE, set.lags = 1:30, cex=0.1, colour = FALSE)
-  })
-  
-  output$l9 <- renderPlot({
-    TS <- read.csv("./../Data/Complete_TS.csv")
-    TST <- read.csv("./../Data/TST.csv")
-    
-    row.names(TST) <- TST$datetime
-    TST = subset(TST, select = -c(X, datetime))
-    
-    row.names(TS) <- TS$datetime
-    TS = subset(TS, select = -c(X, datetime, V10))
-    
-    TS_sum <- rowSums(TS[(1:dim(TST)[1]), ])
-    p1 <- ggAcf(TS_sum)
-    p2 <- ggAcf(TS_sum, lag.max = 24*35)
+    p1 <- ggAcf(load)
+    p2 <- ggAcf(load, lag.max = 24*35)
     grid.arrange(p1, p2, nrow = 2)
   })
   
-  output$l10 <- renderPlot({
-    TS <- read.csv("./../Data/Complete_TS.csv")
-    TST <- read.csv("./../Data/TST.csv")
+  output$acft <- renderPlot({
+    n <-0
+    for(j in 1:11){
+      if(input$selec2==l[j]){
+        n <-j
+      }
+    }
+    query <- paste("select V", n+1," as value from temp_table", sep="")
+    load <- sqldf(query)
+    load <- na.omit(load)
+    p1 <- ggAcf(load)
+    p2 <- ggAcf(load, lag.max = 24*35)
+    grid.arrange(p1, p2, nrow = 2)
+  })
+  
+  output$acfp <- renderPlot({
+    p1 <- c()
+    if(input$selec==d[1]){ p1 <- predictions1 }
+    if(input$selec==d[2]){ p1 <- predictions2 }
+    if(input$selec==d[3]){ p1 <- predictions3 }
+    if(input$selec==d[4]){ p1 <- predictions4 }
+    load <- na.omit(p1)
+    p1 <- ggAcf(load)
+    p2 <- ggAcf(load, lag.max = 24*35)
+    grid.arrange(p1, p2, nrow = 2)
+  })
+  
+  output$pacfp <- renderPlot({
+    p1 <- c()
+    if(input$selec==d[1]){ p1 <- predictions1 }
+    if(input$selec==d[2]){ p1 <- predictions2 }
+    if(input$selec==d[3]){ p1 <- predictions3 }
+    if(input$selec==d[4]){ p1 <- predictions4 }
+    load <- na.omit(p1)
     
-    row.names(TST) <- TST$datetime
-    TST = subset(TST, select = -c(X, datetime))
+    p1 <- ggAcf(load, type = "partial")
+    p2 <- ggAcf(load, type = "partial", lag.max = 24*7)
+    p3 <- ggAcf(load, type = "partial", lag.max = 24*7*4)
     
-    row.names(TS) <- TS$datetime
-    TS = subset(TS, select = -c(X, datetime, V10))
+    grid.arrange(p1, p2, p3, ncol = 2, layout_matrix = rbind(c(1,2), c(3,3)))
+  })
+  
+  
+  output$pacfl <- renderPlot({
+    n <-0
+    for(j in 1:21){
+      if(input$selec1==a[j]){
+        n <-j
+      }
+    }
+    query <- paste("select V", n+1," as value from load_table", sep="")
+    load <- sqldf(query)
     
-    TS_sum <- rowSums(TS[(1:dim(TST)[1]), ])
-    p1 <- ggAcf(TS_sum, type = "partial")
-    p2 <- ggAcf(TS_sum, type = "partial", lag.max = 24*7)
-    p3 <- ggAcf(TS_sum, type = "partial", lag.max = 24*7*4)
+    p1 <- ggAcf(load, type = "partial")
+    p2 <- ggAcf(load, type = "partial", lag.max = 24*7)
+    p3 <- ggAcf(load, type = "partial", lag.max = 24*7*4)
+    
+    grid.arrange(p1, p2, p3, ncol = 2, layout_matrix = rbind(c(1,2), c(3,3)))
+  })
+  
+  output$pacft <- renderPlot({
+    n <-0
+    for(j in 1:21){
+      if(input$selec1==a[j]){
+        n <-j
+      }
+    }
+    query <- paste("select V", n+1," as value from temp_table", sep="")
+    load <- sqldf(query)
+    
+    p1 <- ggAcf(load, type = "partial")
+    p2 <- ggAcf(load, type = "partial", lag.max = 24*7)
+    p3 <- ggAcf(load, type = "partial", lag.max = 24*7*4)
     
     grid.arrange(p1, p2, p3, ncol = 2, layout_matrix = rbind(c(1,2), c(3,3)))
   })
@@ -684,6 +754,7 @@ server <- function(input, output) {
     par(mar=c(3,1,1,1))
     time.axis <- axTicksByTime(Z)
     Z <- as.xts(t(apply(Z,1,function(x) spline(as.vector(coredata(x)), n=1*length(x))$y)))
+    Z <- Z/max(Z)*40
     pm <- persp(z=Z-min(Z),
                 x=(1:NROW(Z))/length(time.axis),
                 y=(1:NCOL(Z))/1,
@@ -732,23 +803,25 @@ server <- function(input, output) {
       
       ff <- Table_period(data.frame("datetime"= kkk[,1] , "value"= dn[,1]),period)
       ff <- na.omit(ff)
-      ff <- xts(x = ff[,2:(1+period)]/1000, order.by = ff$datetime)
-      k= min(ff)
+      ff <- xts(x = ff[,2:(1+period)], order.by = ff$datetime)
+      gj <- max(ff)
+      gjj <- min(ff)
       Z["/2008-07-07",] <- NA
       D <- as.xts(t(apply(ff,1,function(x) spline(as.vector(coredata(x)), n=1*length(x))$y)))
       gh <- merge(Z,D, join= "left")
       Z<-gh[,(period+1):(2*period)]
+      Z <- Z/gj*40
       cnames <- colnames(Z)
       par(mar=c(3,1,1,1))
       par(new=TRUE)
-      pm2<-persp(z=Z,
+      pm2<-persp(z=Z-gjj,
                  x=(1:NROW(Z))/length(time.axis),
                  y=(1:NCOL(Z))/1,
                  shade=.3, ltheta=20,
                  r=200,
                  theta=angle2,
                  col=rep(rep(yred2(NCOL(Z)/1)),each=(NROW(Z)-1)),
-                 scale=input$checkboxx, border=NA,box=FALSE)
+                 scale=FALSE, border=NA,box=FALSE)
     }
     
     
@@ -778,6 +851,7 @@ server <- function(input, output) {
     par(mar=c(3,1,1,1))
     time.axis <- axTicksByTime(Z)
     Z <- as.xts(t(apply(Z,1,function(x) spline(as.vector(coredata(x)), n=1*length(x))$y)))
+    Z <- Z/max(Z)*20
     pm <- persp(z=Z-min(Z),
                 x=(1:NROW(Z))/length(time.axis),
                 y=(1:NCOL(Z))/1,
@@ -785,7 +859,7 @@ server <- function(input, output) {
                 r=10,
                 theta=angle2,
                 col=rep(rep(yred(NCOL(Z)/1)),each=(NROW(Z)-1)),
-                scale=input$checkboxx, border=NA,box=FALSE)
+                scale=FALSE, border=NA,box=FALSE)
     
     x_axis <- seq(1, NROW(Z), length.out=length(time.axis))/length(time.axis)
     y_axis <- seq(1, NCOL(Z), length.out=NCOL(Z)/1)/1
@@ -817,18 +891,7 @@ server <- function(input, output) {
     
     
   })
-  
-  output$l5 <- renderPlot({
-    #set current directory to code source
-    p <- read.csv("./../Data/PredictHyper/ari1.csv", header = F)
-    p = p[!is.na(p)]
-  
-    p1 <- ggAcf(p) + labs(title="Autocorrelation of predicted values")+theme_bw()
-    p2 <- ggAcf(p, type = "partial") + labs(title="Partial autocorrelation of predicted values")+theme_bw()
-    grid.arrange(p1, p2, nrow = 2)
-    
-    
-  })
+
   
   output$ftemp <- renderPlot({
     n <-0
@@ -869,7 +932,6 @@ server <- function(input, output) {
     if(input$select88==d[4]){ p1 <- predictions4 }
     p1 <- na.omit(p1)
     par(mfrow=c(1,2))
-    View(p1)
     spectrum(p1)
     periodogram(p1)
   })
@@ -943,7 +1005,7 @@ server <- function(input, output) {
   
   
   getPage<-function() {
-    return(includeHTML("./../src/Ari/TSMarkdown.html"))
+    return(includeHTML("./TSMarkdown.html"))
   }
   output$inc<-renderUI({getPage()})
   

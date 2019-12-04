@@ -81,14 +81,43 @@ TST <- read.csv("./Data/TST.csv")
 
 View(TS)
 
+library(keras)
+
+
+model1 <- load_model_hdf5("./Data/Models/lstm_672_168.h5")
+model2 <- load_model_hdf5("./Data/Models/lstm_100_1.h5")
+model3 <- load_model_hdf5("./Data/Models/lstm_100_24.h5")
+model4 <- load_model_hdf5("./Data/Models/lstm_1000_168.h5")
 
 
 
+data <- as.data.frame(cbind(TST, TS))
+
+times <- as.POSIXct(row.names(data), format = "%Y-%m-%d %H:%M:")
+timesNAomit <- na.omit(times) #for NA values we omit 
+
+load_zoo_zones <- zoo( # all zones
+  x         = TS,
+  order.by  = timesNAomit,
+  frequency = 24
+)
 
 
+load_zoo <- zoo( #sum of the zones
+  x         = data$TS_sum,
+  order.by  = timesNAomit,
+  frequency = 24
+)
 
+temperature_zoo <- zoo(
+  x         = data$TST_mean,
+  order.by  = timesNAomit,
+  frequency = 24
+)
 
+data_zoo <- cbind(load_zoo, temperature_zoo)
 
+load_ts <- ts(TS_sum, start = as.numeric(times[1]), frequency = 24) 
 
 
 
