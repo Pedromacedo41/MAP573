@@ -1,16 +1,16 @@
 # MAP573 - Time Series Forecast
 
 ## Presentation:
-Presentation: https://docs.google.com/presentation/d/1qFmQMnXmSfjJPaBi75d9R2WJuk4bxjiIsOM6VnXIkyM/edit?usp=sharing
 
+All presentations during the project and the final presentation are inside the powerpoint folder
 
 ## Useful links:
 
-https://www.kaggle.com/apoorvabhide/energy-consumption-time-series-forecasting-in-r/notebook#Introduction
-https://www.kaggle.com/c/global-energy-forecasting-competition-2012-load-forecasting/dat
-Recency Effect https://www.sciencedirect.com/science/article/pii/S0169207015001557?via%3Dihub
-Weather Station Select: https://www.sciencedirect.com/science/article/pii/S0169207014001319?via%3Dihub
-Hierchical Forecasting: https://www.sciencedirect.com/science/article/pii/S0169207013000757
+[Kaggle Challenge Link 1](https://www.kaggle.com/apoorvabhide/energy-consumption-time-series-forecasting-in-r/notebook#Introduction)
+[Kaggle Challenge Link 2](https://www.kaggle.com/c/global-energy-forecasting-competition-2012-load-forecasting/dat)
+[Recency Effect](https://www.sciencedirect.com/science/article/pii/S0169207015001557?via%3Dihub)
+[Weather Station Select](https://www.sciencedirect.com/science/article/pii/S0169207014001319?via%3Dihub)
+[Hierchical Forecasting](https://www.sciencedirect.com/science/article/pii/S0169207013000757)
 
 
 ## About usage and folder structure:
@@ -25,6 +25,16 @@ Other important files/folders:
 + **./Suppor Material** keeps articles, notebooks, etc, with relevant information
 
 
+## How to run R visualisation app
+
+There is a deployed web version of the app [here](https://pedromacedo41.shinyapps.io/rvis/).
+Tu run locally, open app.R (inside RVis) in RStudio and install the necessary libraries. 
+
+All packages installation is straightforward, except keras installation, that requires 
+running library(keras) and install_keras() after running install.packages("keras"). 
+This is a required preliminar step to set up keras backend (tensorflow). 
+
+After set up enviroment, the app is ready to go. 
 
 ## Necessary python libraries in notebook: 
 
@@ -36,21 +46,3 @@ Other important files/folders:
 + numpy
 + sklearn
 
-## How to run R visualisation app:
-
-Required libraries:
-
-+ dygraphs (interactive Time Serie Plot)
-+ data.table
-+ xts (time serie object)
-+ tidyverse
-+ lubridate
-+ sqldf (sql commands in dataframes)
-+ shiny
-
-Run, in this root folder: 
-
-```{r}
-   > library(shiny)
-   > shinyApp("RVis")
-```
