@@ -163,6 +163,12 @@ correlationPlot <- function(s, last, TS, TST, title){
   
 }
 
+
+# The UI is defined here. The functions are defined into server function, identified by output$id functions , where
+# id is the id given in this UI definition.
+# With the app opened, it is easy to map each visualization to each generagation function
+
+# A commum solution in the plot generation functions is taking the data via sql queries (using sqldf package)
 ui <- navbarPage("Energy Forecast Data Visualisation",
                  tabPanel("Time Series",
                           sidebarPanel(width=3,
@@ -410,6 +416,7 @@ server <- function(input, output) {
         n <-j
       }
     }
+    # sql queries
     query <- paste("select V", n+1," as value from load_table", sep="")
     ggg <- sqldf(query)
     
