@@ -17,10 +17,10 @@ All presentations during the project and the final presentation are inside the p
 
 Files/folders: 
 
-+ **./Data** stores all used data
++ **./Data** stores all forecasting data, model data, saved models and all other relevant data.
 + **./powerpoint** stores ppt presentations
 + **./src** stores python an R scripts. This folder is splitted into each person of the group code.
-But this **doesn't mean** each one of these files don't contain another person code.
+But this **doesn't mean** each one of these files don't contain code of the other members of the group
 
 + **./RVis** keeps all the code to generate the R Visualisation tool
 + **./Suppor Material** keeps articles, notebooks, etc, with relevant information
@@ -28,8 +28,7 @@ But this **doesn't mean** each one of these files don't contain another person c
 ## Source Files: 
 
 + Everything related to the R statistic analysis and shiny app is whithin the single file "app.R" 
-+
-
++ The python code for the Neural Networks are spread through the notebook files in **./src** folder
 
 ## How to run R visualisation app
 
