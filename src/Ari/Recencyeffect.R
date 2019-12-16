@@ -1,20 +1,19 @@
-
+#Read and format data
 TS <- read.csv("./../../Data/Complete_TS.csv")
 TST <- read.csv("./../../Data/TST.csv")
-
-
-
 TST = subset(TST, select = -c(X, datetime))
 TS = subset(TS, select = -c(X, datetime, V10))  #Remove Z10 which is V11 because it behaves strangely
-
 TS_sum <- rowSums(TS[(1:dim(TS)[1]), ])
 TST_mean <- rowMeans(TST[(1:dim(TS)[1]), ])
 
+
+#We take the first n from data
 n <- 15000
 TST_mean <- as.matrix(TST_mean[1:n])
 TS_sum <- as.matrix(TS_sum[1:n])
 
 
+#Here we lag and store the correlation
 counter <- 1
 Imax <- 24*2
 C <- matrix(data=NA, nrow = Imax+1, ncol = 2)
@@ -28,6 +27,8 @@ for (i in (0:(length(C)-1))){
   counter = counter + 1
 }
 
+
+#We plot
 C <- as.data.frame(C)
 colnames(C) <- c("Lag", "Correlation")
 library(ggplot2)
