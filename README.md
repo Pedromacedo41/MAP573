@@ -15,14 +15,20 @@ All presentations during the project and the final presentation are inside the p
 
 ## About usage and folder structure:
 
-The python jupyter notebook (with the code of the RNN) is whitin the root directory. 
-Other important files/folders: 
+Files/folders: 
 
 + **./Data** stores all used data
 + **./powerpoint** stores ppt presentations
-+ **./src** stores python an R scripts 
++ **./src** stores python an R scripts. This folder is splitted into each person of the group code.
+But this **doesn't mean** each one of these files don't contain another person code.
+
 + **./RVis** keeps all the code to generate the R Visualisation tool
 + **./Suppor Material** keeps articles, notebooks, etc, with relevant information
+
+## Source Files: 
+
++ Everything related to the R statistic analysis and shiny app is whithin the single file "app.R" 
++
 
 
 ## How to run R visualisation app
