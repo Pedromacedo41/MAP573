@@ -44,18 +44,20 @@ After set up enviroment, the app is ready to go.
 Install the necassary libraries. 
 src/Forecasting contains results from hyperparameter tuning in the folder ../hyperparameter_tuning_results.
 The importants files are:
-	**generating_all_results.ipynb** - generates all the results in the report sequentially
-	**LSTM_basic_multivariable.ipynb** - main file with experiments and visualisations for most basic LSTM architecture
+
++	**generating_all_results.ipynb** - generates all the results in the report sequentially
++	**LSTM_basic_multivariable.ipynb** - main file with experiments and visualisations for most basic LSTM architecture
 		This is the python file which has the most detailed comments. 
 		Other files are created from the basic structure in this one.
-	**LSTM_bidirectional.ipynb** - experiments with bidirectional LSTM
-	**GRU.ipynb** - experiments with bidirectional LSTM
-	**hyperparameter_tuning.ipynb** - A reduced version of the LSTM_experiments_COLAB_GPU.ipynb.
++	**LSTM_bidirectional.ipynb** - experiments with bidirectional LSTM
++	**GRU.ipynb** - experiments with bidirectional LSTM
++	**hyperparameter_tuning.ipynb** - A reduced version of the LSTM_experiments_COLAB_GPU.ipynb.
 		The original file has more functionality but can only be run on GOOGLE COLAB.
 
 Other files such:
-	**data_reformatting.py**/ **data_reformatting.R** - data reformatting in both Python and R.
-	**initial_spyder_scripts.py** - scripts similar to LSTM_basic_multivariable.ipynb intended to by run on any Python IDLE (not used).
+
++	**data_reformatting.py**/ **data_reformatting.R** - data reformatting in both Python and R.
++	**initial_spyder_scripts.py** - scripts similar to LSTM_basic_multivariable.ipynb intended to by run on any Python IDLE (not used).
 	
 ## Necessary python libraries in notebook: 
 
