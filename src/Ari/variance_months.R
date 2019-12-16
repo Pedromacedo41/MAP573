@@ -1,11 +1,14 @@
+library(zoo)
+library(xts)
+#-------------------------------------
+#This code is not used
+#-------------------------------------
 
+#Load data and format it
 TS <- read.csv("../Data/Complete_TS.csv")
 TST <- read.csv("../Data/TST.csv")
-
-
 row.names(TST) <- TST$datetime
 TST = subset(TST, select = -c(X, datetime))
-
 row.names(TS) <- TS$datetime
 TS = subset(TS, select = -c(X, datetime))
 
@@ -15,8 +18,7 @@ TSTmeans <- rowMeans(TST[1:29414, ])
 mean_temp <- mean(TSTmeans)
 data <- as.data.frame(cbind(TSTmeans, TSmeans))
 
-library(zoo)
-library(xts)
+
 
 times <- as.POSIXct(row.names(data), format = "%Y-%m-%d %H:%M:")
 timesNAomit <- na.omit(times) 

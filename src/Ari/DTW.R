@@ -1,5 +1,6 @@
 library(fields)
 library(gplots)
+#Load the data
 dataLoad <- function(){
   TS <- read.csv("./../../Data/Complete_TS.csv")
   TST <- read.csv("./../../Data/TST.csv")
@@ -11,6 +12,7 @@ dataLoad <- function(){
   colnames(TST) <- c("T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11")
   return(list(TS, TST))
 }
+#Normalize the data
 Normalize <- function(TS, TST){
   #library(energy) #for dcor
   TS_mean <- colMeans(TS) #Mean of each Zone for standardization
@@ -33,6 +35,7 @@ Normalize <- function(TS, TST){
   }
   return(list(TS_standardized, TST_standardized))
 }
+#A correlation loop. Finds correlation between two vectors
 correlation <- function(TS, TST){
   D <- matrix(data=NA, nrow = dim(TS)[2], ncol = dim(TST)[2])
   for(i in 1:dim(TS)[2]){ #The rows are i
@@ -46,6 +49,7 @@ correlation <- function(TS, TST){
   }
   return(D)
 }
+#This function creates a correlation plot with a image function.
 correlationPlot <- function(s, last, TS, TST, title){
   
   TS <- TS[(s+1):(last+s),]

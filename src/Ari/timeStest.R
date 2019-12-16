@@ -1,15 +1,14 @@
+#-------------------------------------
+#This code was only testing and is not used for the final report
+#-------------------------------------
 
+#Load data and format it
 TS <- read.csv("./../../Data/Complete_TS.csv")
 TST <- read.csv("./../../Data/TST.csv")
-
-
 row.names(TST) <- TST$datetime
 TST = subset(TST, select = -c(X, datetime))
-
 row.names(TS) <- TS$datetime
 TS = subset(TS, select = -c(X, datetime))
-
-
 
 
 #STANDARDIZE
@@ -18,19 +17,16 @@ TSstandardized <-  t(scale(Z, center = TRUE, scale = TRUE))
 Z <- t(as.matrix(TST))
 TSTstandardized <- t(scale(Z, center = TRUE, scale = TRUE))
 
-
-
 TSmeans <- rowMeans(TS[1:29414, ])
 TSmeans[1]
 TSmeans_standardized <- rowMeans(TSstandardized[1:29414, ])
-
 TSTmeans <- rowMeans(TST[1:29414, ])
 TSTmeans[1]
 TSTmeans_standardized <- rowMeans(TSTstandardized[1:29414, ])
 
-
 data <- as.data.frame(cbind(TSTmeans, TSmeans))
 data_standardized <- as.data.frame(cbind(TSTmeans_standardized, TSmeans_standardized))
+
 
 plot(TSTmeans, TSmeans, 
      main = "Relationship between energy load and temperature", 

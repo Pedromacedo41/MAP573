@@ -1,5 +1,6 @@
 library(fields)
 library(gplots)
+#Load and format data
 dataLoad <- function(){
   TS <- read.csv("./../../Data/Complete_TS.csv")
   TST <- read.csv("./../../Data/TST.csv")
@@ -11,6 +12,7 @@ dataLoad <- function(){
   colnames(TST) <- c("T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11")
   return(list(TS, TST))
 }
+#Correlation function
 correlation <- function(TS, TST){
   D <- matrix(data=NA, nrow = dim(TS)[2], ncol = dim(TST)[2])
   for(i in 1:dim(TS)[2]){ #The rows are i
@@ -29,12 +31,11 @@ correlation <- function(TS, TST){
 temp <- dataLoad()
 TS <- as.matrix(temp[[1]])
 TST <- as.matrix(temp[[2]])
-
 TST <- TST[1:39412,] #remove last na values in TST
 
 
-D <- matrix(data=NA, nrow = dim(TST)[2], ncol = dim(TST)[2])
 
+D <- matrix(data=NA, nrow = dim(TST)[2], ncol = dim(TST)[2])
 for (i in 1:(dim(TST)[2])){
   for (j in 1:(dim(TST)[2])){
     temp1 <- TST[,i]
