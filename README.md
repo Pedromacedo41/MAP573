@@ -6,11 +6,11 @@ All presentations during the project and the final presentation are inside the p
 
 ## Useful links:
 
-[Kaggle Challenge Link 1](https://www.kaggle.com/apoorvabhide/energy-consumption-time-series-forecasting-in-r/notebook#Introduction)
-[Kaggle Challenge Link 2](https://www.kaggle.com/c/global-energy-forecasting-competition-2012-load-forecasting/dat)
-[Recency Effect](https://www.sciencedirect.com/science/article/pii/S0169207015001557?via%3Dihub)
-[Weather Station Select](https://www.sciencedirect.com/science/article/pii/S0169207014001319?via%3Dihub)
-[Hierchical Forecasting](https://www.sciencedirect.com/science/article/pii/S0169207013000757)
++[Kaggle Challenge Link 1](https://www.kaggle.com/apoorvabhide/energy-consumption-time-series-forecasting-in-r/notebook#Introduction)
++[Kaggle Challenge Link 2](https://www.kaggle.com/c/global-energy-forecasting-competition-2012-load-forecasting/dat)
++[Recency Effect](https://www.sciencedirect.com/science/article/pii/S0169207015001557?via%3Dihub)
++[Weather Station Select](https://www.sciencedirect.com/science/article/pii/S0169207014001319?via%3Dihub)
++[Hierchical Forecasting](https://www.sciencedirect.com/science/article/pii/S0169207013000757)
 
 
 ## About usage and folder structure:
@@ -51,13 +51,13 @@ The importants files are:
 		Other files are created from the basic structure in this one.
 +	**LSTM_bidirectional.ipynb** - experiments with bidirectional LSTM
 +	**GRU.ipynb** - experiments with bidirectional LSTM
-+	**hyperparameter_tuning.ipynb** - A reduced version of the LSTM_experiments_COLAB_GPU.ipynb.
++	**hyperparameter_tuning.ipynb** - A reduced version of the **LSTM_experiments_COLAB_GPU.ipynb**.
 		The original file has more functionality but can only be run on GOOGLE COLAB.
 
 Other files such:
 
 +	**data_reformatting.py**/ **data_reformatting.R** - data reformatting in both Python and R.
-+	**initial_spyder_scripts.py** - scripts similar to LSTM_basic_multivariable.ipynb intended to by run on any Python IDLE (not used).
++	**initial_spyder_scripts.py** - scripts similar to **LSTM_basic_multivariable.ipynb** intended to by run on any Python IDLE (not used).
 	
 ## Necessary python libraries in notebook: 
 
