@@ -192,9 +192,7 @@ ui <- navbarPage("Energy Forecast Data Visualisation",
                             sliderInput("slider1", h6("Slider 1, Load Data"),
                                         min = 0, max = 90, value = 50),
                             sliderInput("sslider11", h6("Slider 2, Temp Data"),
-                                        min = 0, max = 90, value = 50),
-                            selectInput("ggselect", strong("Forecast Data"),choices =c(d,"New Data"),selected = 2),
-                            checkboxInput("checkbox2", "Include Forecast Data", value = FALSE)
+                                        min = 0, max = 90, value = 50)
                           ),
                           mainPanel(
                             tabsetPanel(
@@ -355,7 +353,7 @@ server <- function(input, output) {
       pred$data <- fore
     }
     if(input$selectt==d[1]){
-      window <- 672
+      window <- 1000
       h <-as.numeric(ggg[a1:(a1+window-1),2])
       g <- (h-min(h))/(max(h)-min(h))
       test_matrix <- build_matrix(g, window)
@@ -793,36 +791,39 @@ server <- function(input, output) {
     segments(xy0$x,xy0$y,xy1$x,xy1$y)
     
     
-    if(input$checkbox2){
-      dn <- c()
-      l <- c()
-      if(input$ggselect==d[1]){ dn<- predictions1 ; l <- load_table$datetime[37709:38212]}
-      if(input$ggselect==d[2]){ dn<- predictions2 ; l <- load_table$datetime[1:39576]}
-      if(input$ggselect==d[3]){ dn<- predictions3 ; l <- load_table$datetime[32661:32784]}
-      if(input$ggselect==d[4]){ dn<- predictions4 ; l <-  load_table$datetime[32161:33328]}
-      
-      ff <- Table_period(data.frame("datetime"= kkk[,1] , "value"= dn[,1]),period)
-      ff <- na.omit(ff)
-      ff <- xts(x = ff[,2:(1+period)], order.by = ff$datetime)
-      gj <- max(ff)
-      gjj <- min(ff)
-      Z["/2008-07-07",] <- NA
-      D <- as.xts(t(apply(ff,1,function(x) spline(as.vector(coredata(x)), n=1*length(x))$y)))
-      gh <- merge(Z,D, join= "left")
-      Z<-gh[,(period+1):(2*period)]
-      Z <- Z/gj*40
-      cnames <- colnames(Z)
-      par(mar=c(3,1,1,1))
-      par(new=TRUE)
-      pm2<-persp(z=Z-gjj,
-                 x=(1:NROW(Z))/length(time.axis),
-                 y=(1:NCOL(Z))/1,
-                 shade=.3, ltheta=20,
-                 r=200,
-                 theta=angle2,
-                 col=rep(rep(yred2(NCOL(Z)/1)),each=(NROW(Z)-1)),
-                 scale=FALSE, border=NA,box=FALSE)
-    }
+    
+    # if(input$checkbox2){
+    #   dn <- c()
+    #   l <- c()
+    #   if(input$ggselect==d[1]){ dn<- predictions1 ; l <- load_table$datetime[37709:38212]}
+    #   if(input$ggselect==d[2]){ dn<- predictions2 ; l <- load_table$datetime[1:39576]}
+    #   if(input$ggselect==d[3]){ dn<- predictions3 ; l <- load_table$datetime[32661:32784]}
+    #   if(input$ggselect==d[4]){ dn<- predictions4 ; l <-  load_table$datetime[32161:33328]}
+    #   
+    #   
+    #   ff <- Table_period(data.frame("datetime"= kkk[,1] , "value"= dn[,1]),period)
+    #   ff <- na.omit(ff)
+    #   ff <- xts(x = ff[,2:(1+period)], order.by = ff$datetime)
+    #   gj <- max(ff)
+    #   gjj <- min(ff)
+    #   Z["/2008-07-07",] <- NA
+    #   D <- as.xts(t(apply(ff,1,function(x) spline(as.vector(coredata(x)), n=1*length(x))$y)))
+    #   gh <- merge(Z,D, join= "left")
+    #   Z<-gh[,(period+1):(2*period)]
+    #   Z <- Z/gj*40
+    #   cnames <- colnames(Z)
+    #   par(mar=c(3,1,1,1))
+    #   par(new=TRUE)
+    #   pm2<-persp(z=Z-gjj,
+    #              x=(1:NROW(Z))/length(time.axis),
+    #              y=(1:NCOL(Z))/1,
+    #              shade=.3, ltheta=20,
+    #              r=200,
+    #              theta=angle2,
+    #              col=rep(rep(yred2(NCOL(Z)/1)),each=(NROW(Z)-1)),
+    #              scale=FALSE, border=NA,box=FALSE)
+    # }
+    
     
     
   })
